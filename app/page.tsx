@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
 import Link from 'next/link'
-import { MapPin, Calendar, Search, ArrowRight, Users, Loader2 } from 'lucide-react'
+import { MapPin, Calendar, Users, Loader2 } from 'lucide-react'
 
 type Aktivitet = { 
   id: string; 
@@ -18,8 +18,6 @@ type Aktivitet = {
 export default function LandingPage() {
   const supabase = createClient()
   const [aktiviteter, setAktiviteter] = useState<Aktivitet[]>([])
-  const [alleAktiviteter, setAlleAktiviteter] = useState<Aktivitet[]>([])
-  const [soketekst, setSoketekst] = useState('')
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -30,132 +28,85 @@ export default function LandingPage() {
         .order('created_at', { ascending: false })
         .limit(12)
       
-      if (data) {
-        setAktiviteter(data)
-        setAlleAktiviteter(data)
-      }
+      if (data) setAktiviteter(data)
       setLoading(false)
     }
     hentData()
   }, [])
 
-  useEffect(() => {
-    if (!soketekst.trim()) {
-      setAktiviteter(alleAktiviteter)
-    } else {
-      const filtrert = alleAktiviteter.filter(a => 
-        a.sted.toLowerCase().includes(soketekst.toLowerCase()) || 
-        a.tittel.toLowerCase().includes(soketekst.toLowerCase())
-      )
-      setAktiviteter(filtrert)
-    }
-  }, [soketekst, alleAktiviteter])
-
   return (
-    <div className="min-h-screen bg-white font-sans text-slate-900 pb-24">
+    <div className="min-h-screen bg-white font-sans text-slate-900 pb-20">
       
-      {/* --- HEADER (Kompakt) --- */}
-      <nav className="sticky top-0 z-50 bg-white border-b border-gray-100">
-        <div className="max-w-[1400px] mx-auto px-6 h-16 flex justify-between items-center">
-          <Link href="/" className="text-xl font-black tracking-tight text-slate-900 flex items-center gap-2">
+      {/* HEADER - Enkel og ren */}
+      <nav className="border-b border-slate-100 sticky top-0 bg-white/95 backdrop-blur z-50">
+        <div className="max-w-[1400px] mx-auto px-6 h-20 flex justify-between items-center">
+          <h1 className="text-2xl font-black text-slate-900 tracking-tight">
             NyeVenner
-          </Link>
-          
-          {/* Søkefelt i header (Sparer plass) */}
-          <div className="hidden md:flex items-center bg-gray-100 rounded-full px-4 py-2 w-96 border border-transparent focus-within:border-slate-300 focus-within:bg-white transition-all">
-            <Search size={18} className="text-slate-400 mr-3" />
-            <input 
-              type="text" 
-              value={soketekst}
-              onChange={(e) => setSoketekst(e.target.value)}
-              placeholder="Søk etter aktiviteter..." 
-              className="bg-transparent outline-none text-sm w-full placeholder:text-slate-500"
-            />
-          </div>
-
-          <Link href="/login" className="text-sm font-bold text-slate-700 hover:bg-gray-100 px-4 py-2 rounded-full transition-colors">
+          </h1>
+          <Link href="/login" className="text-sm font-bold bg-slate-100 px-5 py-2.5 rounded-full hover:bg-slate-200 transition-colors">
             Logg inn
           </Link>
         </div>
       </nav>
 
-      {/* --- SØK FOR MOBIL (Vises kun på liten skjerm) --- */}
-      <div className="md:hidden px-4 py-4 border-b border-gray-100">
-        <div className="flex items-center bg-gray-100 rounded-full px-4 py-3">
-          <Search size={18} className="text-slate-400 mr-3" />
-          <input 
-            type="text" 
-            value={soketekst}
-            onChange={(e) => setSoketekst(e.target.value)}
-            placeholder="Søk..." 
-            className="bg-transparent outline-none text-sm w-full"
-          />
-        </div>
-      </div>
-
-      {/* --- INNHOLD --- */}
-      <main className="max-w-[1400px] mx-auto px-4 sm:px-6 py-8">
+      <main className="max-w-[1400px] mx-auto px-6 py-10">
         
-        <div className="flex items-center justify-between mb-6">
-          <h1 className="text-2xl font-bold text-slate-900">Aktiviteter</h1>
+        <div className="flex justify-between items-end mb-8">
+          <h2 className="text-3xl font-bold text-slate-900">Oppdag aktiviteter</h2>
         </div>
 
         {loading ? (
           <div className="flex justify-center py-20">
             <Loader2 className="animate-spin text-slate-300" size={32} />
           </div>
-        ) : aktiviteter.length === 0 ? (
-          <div className="py-20 text-center text-slate-500">
-            Ingen aktiviteter funnet.
-          </div>
         ) : (
           /* 
-             RUTENETT: 
-             - Mobil: 1 kolonne
-             - Tablet: 2 kolonner
-             - Liten Laptop: 3 kolonner
-             - Stor Skjerm: 4 kolonner (Airbnb standard)
+             HER ER RUTENETTET SOM TVINGER 4 I BREDDEN PÅ PC
+             grid-cols-1 = Mobil
+             sm:grid-cols-2 = Nettbrett
+             lg:grid-cols-4 = PC (Supertrouper stil)
           */
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-6 gap-y-10">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-6 gap-y-10">
             
             {aktiviteter.map((aktivitet) => (
-              <Link href={`/aktivitet/${aktivitet.id}`} key={aktivitet.id} className="group cursor-pointer block">
+              <Link href={`/aktivitet/${aktivitet.id}`} key={aktivitet.id} className="group block">
                 
-                {/* BILDE - Kompakt format (4:3 ratio) */}
-                <div className="relative aspect-[4/3] bg-gray-200 rounded-xl overflow-hidden mb-3">
+                {/* 1. BILDET - LÅST HØYDE (h-48 = ca 200px). Blir aldri større enn dette. */}
+                <div className="relative h-48 w-full overflow-hidden rounded-xl bg-gray-100 mb-4">
                   <img 
                     src={aktivitet.image_url || 'https://images.unsplash.com/photo-1543269865-cbf427effbad?q=80&w=600'} 
                     alt={aktivitet.tittel}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                   />
-                  {/* Dato-tag (Liten og diskret oppe i hjørnet) */}
-                  <div className="absolute top-2 left-2 bg-white/90 backdrop-blur px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider text-slate-900 shadow-sm">
+                  {/* Dato-tag oppå bildet */}
+                  <div className="absolute top-3 left-3 bg-white px-2 py-1 rounded text-xs font-bold text-slate-900 shadow-sm">
                     {aktivitet.dato.split(' ')[0]}
                   </div>
                 </div>
 
-                {/* TEKST - Under bildet (Airbnb stil) */}
+                {/* 2. TEKST - FOKUS HER */}
                 <div>
-                  <div className="flex justify-between items-start mb-1">
-                    <h3 className="font-bold text-slate-900 text-base leading-snug group-hover:underline decoration-2 underline-offset-4 decoration-slate-900">
-                      {aktivitet.tittel}
-                    </h3>
+                  {/* Tittel: Stor og fet */}
+                  <h3 className="text-lg font-bold text-slate-900 leading-tight mb-1 group-hover:underline decoration-2 underline-offset-4">
+                    {aktivitet.tittel}
+                  </h3>
+                  
+                  {/* Info-linje: Sted */}
+                  <div className="flex items-center gap-1 text-slate-500 text-sm mb-2">
+                    <MapPin size={14} />
+                    <span className="truncate font-medium">{aktivitet.sted}</span>
                   </div>
-                  
-                  <p className="text-slate-500 text-sm mb-1 truncate">
-                    {aktivitet.sted}
-                  </p>
-                  
-                  <p className="text-slate-500 text-sm flex items-center gap-1">
-                    <Calendar size={14} />
-                    {aktivitet.dato}
-                  </p>
 
-                  {/* Status på plasser */}
-                  <div className="mt-2 text-xs font-medium text-slate-400 flex items-center gap-1">
-                    {aktivitet.max_deltakere 
-                      ? <><Users size={12}/> {aktivitet.max_deltakere} plasser totalt</> 
-                      : 'Åpent for alle'}
+                  {/* Info-linje: Tid og Plasser */}
+                  <div className="flex items-center justify-between pt-2 border-t border-slate-100 text-xs text-slate-400">
+                    <div className="flex items-center gap-1">
+                      <Calendar size={12} />
+                      <span>{aktivitet.dato.split(',')[0]}</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <Users size={12} />
+                      <span>{aktivitet.max_deltakere ? `${aktivitet.max_deltakere} plasser` : 'Åpent'}</span>
+                    </div>
                   </div>
                 </div>
 
@@ -165,11 +116,11 @@ export default function LandingPage() {
         )}
       </main>
 
-      {/* Flytende Knapp (Diskret) */}
+      {/* Flytende knapp nede i hjørnet */}
       <div className="fixed bottom-8 right-8 z-40">
         <Link 
           href="/ny-aktivitet" 
-          className="bg-slate-900 text-white px-6 py-3 rounded-full font-bold shadow-xl hover:bg-slate-800 transition-all flex items-center gap-2 text-sm"
+          className="bg-black text-white px-6 py-4 rounded-full font-bold shadow-xl hover:scale-105 transition-transform flex items-center gap-2"
         >
           + Lag aktivitet
         </Link>
