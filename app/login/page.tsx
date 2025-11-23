@@ -1,115 +1,114 @@
-'use client' // Dette betyr at siden kjører i nettleseren (nødvendig for skjemaer)
+'use client'
 
 import { useState } from 'react'
-import { createClient } from '@/utils/supabase/client' // Henter nøkkelkortet vårt
+import { createClient } from '@/utils/supabase/client'
 import { useRouter } from 'next/navigation'
+import { Mail, Lock, Loader2 } from 'lucide-react' // Ikoner
 
 export default function LoginPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState('')
-  
   const router = useRouter()
   const supabase = createClient()
 
-  // Funksjon for å logge inn
   const handleLogin = async () => {
     setLoading(true)
-    setMessage('')
-    
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    })
-
-    if (error) {
-      setMessage('Feil: ' + error.message)
-      setLoading(false)
-    } else {
-      router.push('/oppsett') // Send brukeren til "oppsett"
+    const { error } = await supabase.auth.signInWithPassword({ email, password })
+    if (error) setMessage(error.message)
+    else {
+      router.push('/minside')
       router.refresh()
-    }
-  }
-
-  // Funksjon for å registrere ny bruker
-  const handleSignUp = async () => {
-    setLoading(true)
-    setMessage('')
-
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-    })
-
-    if (error) {
-      setMessage('Kunne ikke registrere: ' + error.message)
-    } else {
-      setMessage('Suksess! Sjekk e-posten din for bekreftelse.')
     }
     setLoading(false)
   }
 
+  const handleSignUp = async () => {
+    setLoading(true)
+    const { error } = await supabase.auth.signUp({ email, password })
+    if (error) setMessage(error.message)
+    else setMessage('Sjekk e-posten din!')
+    setLoading(false)
+  }
+
+  const handleGoogleLogin = async () => {
+    await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: `${location.origin}/auth/callback`,
+      },
+    })
+  }
+
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-gray-50">
-      
-      <div className="bg-white p-8 rounded-xl shadow-lg w-full max-w-md border border-gray-200">
-        <h1 className="text-3xl font-bold text-blue-900 mb-6 text-center">Logg inn</h1>
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-50 via-white to-blue-100 p-4">
+      <div className="bg-white/80 backdrop-blur-xl p-8 md:p-12 rounded-3xl shadow-2xl w-full max-w-md border border-white/50">
+        
+        <div className="text-center mb-10">
+          <h1 className="text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600 mb-2">
+            NyeVenner
+          </h1>
+          <p className="text-gray-500">Din møteplass i hverdagen</p>
+        </div>
 
-        <div className="space-y-6">
-          
-          {/* E-post felt */}
-          <div>
-            <label className="block text-lg font-medium text-gray-700 mb-2">E-post adresse</label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="din@epost.no"
-              className="w-full p-4 border-2 border-gray-300 rounded-lg text-xl focus:border-blue-500 focus:outline-none"
-            />
+        <div className="space-y-5">
+          {/* Google Knapp */}
+          <button 
+            onClick={handleGoogleLogin}
+            className="w-full bg-white border border-gray-300 text-gray-700 py-4 rounded-2xl font-semibold flex items-center justify-center gap-3 hover:bg-gray-50 transition-all shadow-sm group"
+          >
+            <img src="https://authjs.dev/img/providers/google.svg" className="w-6 h-6 group-hover:scale-110 transition-transform" alt="Google" />
+            Fortsett med Google
+          </button>
+
+          <div className="relative flex py-2 items-center">
+            <div className="flex-grow border-t border-gray-200"></div>
+            <span className="flex-shrink-0 mx-4 text-gray-400 text-sm">eller bruk e-post</span>
+            <div className="flex-grow border-t border-gray-200"></div>
           </div>
 
-          {/* Passord felt */}
-          <div>
-            <label className="block text-lg font-medium text-gray-700 mb-2">Passord</label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="******"
-              className="w-full p-4 border-2 border-gray-300 rounded-lg text-xl focus:border-blue-500 focus:outline-none"
-            />
-          </div>
-
-          {/* Beskjed-boks (vises kun hvis det er feil eller suksess) */}
-          {message && (
-            <div className="p-4 bg-yellow-100 text-yellow-800 rounded-lg text-lg">
-              {message}
+          <div className="space-y-4">
+            <div className="relative">
+              <Mail className="absolute left-4 top-4 text-gray-400" size={20} />
+              <input
+                type="email"
+                placeholder="E-postadresse"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full pl-12 pr-4 py-4 bg-gray-50 border border-gray-200 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+              />
             </div>
-          )}
+            <div className="relative">
+              <Lock className="absolute left-4 top-4 text-gray-400" size={20} />
+              <input
+                type="password"
+                placeholder="Passord"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full pl-12 pr-4 py-4 bg-gray-50 border border-gray-200 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+              />
+            </div>
+          </div>
 
-          {/* Knapper */}
-          <div className="flex flex-col gap-4 pt-4">
+          {message && <p className="text-red-500 text-center bg-red-50 p-2 rounded-lg">{message}</p>}
+
+          <div className="flex gap-3 pt-2">
             <button
               onClick={handleLogin}
               disabled={loading}
-              className="w-full bg-green-600 text-white text-xl font-bold py-4 rounded-lg hover:bg-green-700 transition-colors"
+              className="flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-4 rounded-2xl font-bold hover:shadow-lg hover:scale-[1.02] transition-all flex justify-center items-center"
             >
-              {loading ? 'Jobber...' : 'Logg inn'}
+              {loading ? <Loader2 className="animate-spin" /> : 'Logg inn'}
             </button>
-
-            <div className="text-center text-gray-500 my-2">- eller -</div>
-
             <button
               onClick={handleSignUp}
               disabled={loading}
-              className="w-full bg-white border-2 border-blue-600 text-blue-600 text-xl font-bold py-4 rounded-lg hover:bg-blue-50 transition-colors"
+              className="flex-1 bg-white text-blue-600 border-2 border-blue-100 py-4 rounded-2xl font-bold hover:bg-blue-50 transition-all"
             >
-              Ny bruker? Registrer deg
+              Ny bruker
             </button>
           </div>
-
         </div>
       </div>
     </div>

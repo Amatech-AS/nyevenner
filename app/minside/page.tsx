@@ -4,22 +4,11 @@ import { useEffect, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import { Plus, LogOut, MapPin, Calendar, Users } from 'lucide-react'
 
-// Typer for TypeScript
-type Aktivitet = {
-  id: string
-  tittel: string
-  beskrivelse: string
-  dato: string
-  sted: string
-}
-
-type Profil = {
-  id: string
-  full_name: string
-  rolle: string
-  invite_code: string | null
-}
+// Typer
+type Aktivitet = { id: string; tittel: string; beskrivelse: string; dato: string; sted: string }
+type Profil = { id: string; full_name: string; rolle: string; invite_code: string | null }
 
 export default function MinSide() {
   const supabase = createClient()
@@ -27,81 +16,45 @@ export default function MinSide() {
   
   const [profil, setProfil] = useState<Profil | null>(null)
   const [aktiviteter, setAktiviteter] = useState<Aktivitet[]>([])
-  const [mineSeniorer, setMineSeniorer] = useState<Profil[]>([])
+  const [mineBrukere, setMineBrukere] = useState<Profil[]>([]) // Endret fra Senior
   const [loading, setLoading] = useState(true)
-  
-  // For pårørende som skal koble seg til
   const [inputKode, setInputKode] = useState('')
   const [koblingsStatus, setKoblingsStatus] = useState('')
 
-  useEffect(() => {
-    lastData()
-  }, [])
+  useEffect(() => { lastData() }, [])
 
   const lastData = async () => {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
 
-    // 1. Hent min profil
-    const { data: minProfil } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', user.id)
-      .single()
+    const { data: minProfil } = await supabase.from('profiles').select('*').eq('id', user.id).single()
     
     if (minProfil) {
       setProfil(minProfil)
       
-      // LOGIKK FOR SENIORER
-      if (minProfil.rolle === 'senior') {
-        // Hvis senior mangler kode, lag en nå!
+      if (minProfil.rolle === 'senior') { // Vi beholder 'senior' i databasen, men viser 'Bruker'
         if (!minProfil.invite_code) {
           const nyKode = genererKode()
           await supabase.from('profiles').update({ invite_code: nyKode }).eq('id', user.id)
-          minProfil.invite_code = nyKode // Oppdater lokalt
-          setProfil({...minProfil}) // Tving oppdatering av skjermen
+          minProfil.invite_code = nyKode
+          setProfil({...minProfil})
         }
-        
-        // Hent alle aktiviteter (Marketplace)
-        const { data: akt } = await supabase
-          .from('activities')
-          .select('*')
-          .order('created_at', { ascending: false })
+        const { data: akt } = await supabase.from('activities').select('*').order('created_at', { ascending: false })
         if (akt) setAktiviteter(akt)
       
-      // LOGIKK FOR PÅRØRENDE
       } else if (minProfil.rolle === 'familie') {
-        // Finn seniorene jeg er koblet til
-        const { data: linker } = await supabase
-          .from('family_links')
-          .select('senior_id')
-          .eq('relative_id', user.id)
+        const { data: linker } = await supabase.from('family_links').select('senior_id').eq('relative_id', user.id)
         
         if (linker && linker.length > 0) {
           const seniorIder = linker.map(l => l.senior_id)
-          
-          // Hent navn på seniorene
-          const { data: seniorProfiler } = await supabase
-            .from('profiles')
-            .select('*')
-            .in('id', seniorIder)
-          
-          if (seniorProfiler) setMineSeniorer(seniorProfiler)
+          const { data: brukerProfiler } = await supabase.from('profiles').select('*').in('id', seniorIder)
+          if (brukerProfiler) setMineBrukere(brukerProfiler)
 
-          // Hent aktiviteter disse seniorene SKAL på (via participants tabellen)
-          const { data: paameldinger } = await supabase
-            .from('participants')
-            .select('activity_id, user_id')
-            .in('user_id', seniorIder)
-
+          const { data: paameldinger } = await supabase.from('participants').select('activity_id').in('user_id', seniorIder)
           if (paameldinger && paameldinger.length > 0) {
             const aktivitetIder = paameldinger.map(p => p.activity_id)
-            const { data: seniorAktiviteter } = await supabase
-              .from('activities')
-              .select('*')
-              .in('id', aktivitetIder)
-            
-            if (seniorAktiviteter) setAktiviteter(seniorAktiviteter)
+            const { data: brukerAktiviteter } = await supabase.from('activities').select('*').in('id', aktivitetIder)
+            if (brukerAktiviteter) setAktiviteter(brukerAktiviteter)
           }
         }
       }
@@ -109,160 +62,135 @@ export default function MinSide() {
     setLoading(false)
   }
 
-  // Hjelpefunksjon: Lager en kode som "SOL-82"
   const genererKode = () => {
-    const ord = ['TUR', 'SOL', 'HAV', 'BY', 'HEI', 'VENN']
-    const tilfeldigOrd = ord[Math.floor(Math.random() * ord.length)]
-    const tilfeldigTall = Math.floor(Math.random() * 900) + 100
-    return `${tilfeldigOrd}-${tilfeldigTall}`
+    const ord = ['TUR', 'BY', 'HEI', 'VENN']
+    return `${ord[Math.floor(Math.random() * ord.length)]}-${Math.floor(Math.random() * 900) + 100}`
   }
 
-  // Hjelpefunksjon: Pårørende kobler seg til
-  const kobleTilSenior = async () => {
+  const kobleTilBruker = async () => {
     if (!profil) return
     setKoblingsStatus('Leter...')
-    
-    // 1. Finn senior med koden
-    const { data: senior } = await supabase
-      .from('profiles')
-      .select('id, full_name')
-      .eq('invite_code', inputKode.toUpperCase())
-      .single()
+    const { data: bruker } = await supabase.from('profiles').select('id, full_name').eq('invite_code', inputKode.toUpperCase()).single()
 
-    if (!senior) {
-      setKoblingsStatus('Fant ingen med denne koden.')
-      return
-    }
+    if (!bruker) { setKoblingsStatus('Fant ingen med denne koden.'); return }
 
-    // 2. Lagre koblingen
-    const { error } = await supabase
-      .from('family_links')
-      .insert({ relative_id: profil.id, senior_id: senior.id })
-
-    if (error) {
-      setKoblingsStatus('Dere er allerede koblet sammen (eller noe gikk galt).')
-    } else {
-      setKoblingsStatus(`Hurra! Du er nå koblet til ${senior.full_name}. Oppdater siden for å se timeplanen.`)
-      window.location.reload() // Enkel måte å oppdatere alt på
-    }
+    const { error } = await supabase.from('family_links').insert({ relative_id: profil.id, senior_id: bruker.id })
+    if (error) setKoblingsStatus('Dere er allerede koblet sammen.')
+    else { setKoblingsStatus(`Koblet til ${bruker.full_name}!`); window.location.reload() }
   }
 
-  const loggUt = async () => {
-    await supabase.auth.signOut()
-    router.push('/')
-    router.refresh()
-  }
+  const loggUt = async () => { await supabase.auth.signOut(); router.push('/'); router.refresh() }
 
-  if (loading) return <div className="p-10 text-xl text-center">Laster din side...</div>
+  if (loading) return <div className="min-h-screen flex items-center justify-center bg-gray-50 text-blue-600">Laster...</div>
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-[#F3F4F6] font-sans text-slate-800">
       
-      <header className="bg-blue-900 text-white p-6 shadow-md">
-        <div className="max-w-4xl mx-auto flex justify-between items-center">
-          <div>
-            <h1 className="text-2xl font-bold">NyeVenner</h1>
-            <p className="text-blue-200">
-              {profil?.rolle === 'senior' ? 'Din oversikt' : 'Pårørende-oversikt'}
-            </p>
-          </div>
-          <button onClick={loggUt} className="underline hover:text-blue-200">Logg ut</button>
+      {/* Moderne Glass Header */}
+      <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-gray-200 px-6 py-4 flex justify-between items-center">
+        <div>
+          <h1 className="text-2xl font-black bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+            NyeVenner
+          </h1>
         </div>
+        <button onClick={loggUt} className="p-2 bg-gray-100 rounded-full hover:bg-red-100 hover:text-red-600 transition-colors">
+          <LogOut size={20} />
+        </button>
       </header>
 
-      <main className="max-w-4xl mx-auto p-4 mt-6">
+      <main className="max-w-5xl mx-auto p-4 md:p-8 space-y-10">
 
-        {/* --- VISNING FOR SENIOR --- */}
-        {profil?.rolle === 'senior' && (
-          <>
-            <div className="bg-yellow-50 border-l-8 border-yellow-400 p-6 rounded-r-xl shadow-sm mb-8">
-              <h3 className="text-xl font-bold text-yellow-800">👋 Hei {profil.full_name}!</h3>
-              <p className="text-lg text-yellow-900 mt-2">
-                Vil du at familien skal se hva du skal på? Gi dem denne koden:
-              </p>
-              <div className="mt-4 bg-white inline-block px-8 py-4 rounded-xl border-2 border-dashed border-yellow-500">
-                <span className="text-4xl font-mono font-bold tracking-widest text-gray-800">
-                  {profil.invite_code || 'Lager kode...'}
-                </span>
-              </div>
-            </div>
-
-            <div className="mb-10 text-center">
-              <Link href="/ny-aktivitet" className="inline-block bg-green-600 hover:bg-green-700 text-white text-xl font-bold py-4 px-8 rounded-xl shadow-lg">
-                + Lag ny aktivitet
-              </Link>
-            </div>
+        {/* --- VELKOMSTSEKSJON --- */}
+        <section className="bg-gradient-to-br from-indigo-500 to-blue-600 rounded-3xl p-8 md:p-12 text-white shadow-2xl relative overflow-hidden">
+          <div className="relative z-10">
+            <h2 className="text-3xl md:text-5xl font-bold mb-4">Hei, {profil?.full_name?.split(' ')[0]}! 👋</h2>
             
-            <h2 className="text-2xl font-bold text-gray-800 mb-6">Aktiviteter i nærheten</h2>
-          </>
-        )}
-
-
-        {/* --- VISNING FOR PÅRØRENDE --- */}
-        {profil?.rolle === 'familie' && (
-          <>
-            {mineSeniorer.length === 0 ? (
-              <div className="bg-white p-8 rounded-xl shadow-md text-center mb-8 border border-gray-200">
-                <h3 className="text-2xl font-bold text-blue-900 mb-4">Koble til Senior</h3>
-                <p className="mb-6 text-gray-600">Få koden fra senioren (f.eks TUR-123) og skriv den her:</p>
-                
-                <div className="flex flex-col sm:flex-row gap-4 justify-center max-w-md mx-auto">
-                  <input 
-                    value={inputKode}
-                    onChange={(e) => setInputKode(e.target.value)}
-                    placeholder="Kode her..."
-                    className="p-4 border-2 border-gray-300 rounded-xl text-xl uppercase font-mono text-center w-full"
-                  />
-                  <button 
-                    onClick={kobleTilSenior}
-                    className="bg-blue-600 text-white px-8 py-4 rounded-xl font-bold hover:bg-blue-700 w-full sm:w-auto"
-                  >
-                    Koble til
-                  </button>
+            {profil?.rolle === 'senior' ? (
+              <div>
+                <p className="text-blue-100 text-lg mb-8 max-w-xl">
+                  Deler du koden din, kan familien se hva du skal på. Din kode er:
+                </p>
+                <div className="bg-white/20 backdrop-blur-sm inline-block px-8 py-4 rounded-2xl border border-white/30">
+                  <span className="text-4xl font-mono font-bold tracking-widest">{profil.invite_code}</span>
                 </div>
-                {koblingsStatus && <p className="mt-4 font-bold text-blue-800">{koblingsStatus}</p>}
               </div>
             ) : (
-              <div className="mb-8 bg-green-50 p-6 rounded-xl border border-green-200">
-                <h3 className="text-xl font-bold text-green-800">
-                  Du følger: {mineSeniorer.map(s => s.full_name).join(', ')}
-                </h3>
-                <p className="text-green-700">Her er aktivitetene de har meldt seg på:</p>
-              </div>
+               <p className="text-blue-100 text-lg">
+                 Her får du oversikt over aktivitetene til dine nærmeste.
+               </p>
             )}
+          </div>
+          {/* Dekorativ sirkel */}
+          <div className="absolute -right-10 -bottom-20 w-64 h-64 bg-white/10 rounded-full blur-3xl"></div>
+        </section>
 
-            <h2 className="text-2xl font-bold text-gray-800 mb-6">
-              {mineSeniorer.length > 0 ? 'Planlagte aktiviteter' : 'Ingen aktiviteter å vise enda'}
-            </h2>
-          </>
+        {/* --- Handlinger (Kun for Brukere/Seniorer) --- */}
+        {profil?.rolle === 'senior' && (
+           <div className="flex justify-center">
+             <Link href="/ny-aktivitet" className="group flex items-center gap-3 bg-white pl-6 pr-8 py-4 rounded-full shadow-lg border border-gray-100 hover:shadow-xl hover:scale-105 transition-all cursor-pointer">
+               <div className="bg-green-100 p-2 rounded-full group-hover:bg-green-200 transition-colors">
+                 <Plus className="text-green-700" size={24} />
+               </div>
+               <span className="text-xl font-bold text-gray-700">Lag en ny aktivitet</span>
+             </Link>
+           </div>
         )}
 
-
-        {/* --- FELLES LISTE MED AKTIVITETER --- */}
-        {aktiviteter.length === 0 && profil?.rolle === 'familie' && mineSeniorer.length > 0 && (
-          <p className="text-gray-500 italic">Senioren din har ikke meldt seg på noe enda.</p>
+        {/* --- Pårørende Kobling --- */}
+        {profil?.rolle === 'familie' && mineBrukere.length === 0 && (
+          <div className="bg-white p-8 rounded-3xl shadow-sm border border-gray-100 text-center max-w-lg mx-auto">
+            <h3 className="text-xl font-bold text-gray-800 mb-4">Koble til Bruker</h3>
+            <div className="flex gap-2">
+              <input 
+                value={inputKode} 
+                onChange={e => setInputKode(e.target.value)} 
+                placeholder="Skriv koden (f.eks TUR-123)"
+                className="flex-1 p-4 bg-gray-50 rounded-xl outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              <button onClick={kobleTilBruker} className="bg-blue-600 text-white px-6 rounded-xl font-bold hover:bg-blue-700">
+                Koble
+              </button>
+            </div>
+            {koblingsStatus && <p className="mt-4 text-blue-600 font-medium">{koblingsStatus}</p>}
+          </div>
         )}
 
-        <div className="grid gap-6">
-          {aktiviteter.map((aktivitet) => (
-            <div key={aktivitet.id} className="bg-white p-6 rounded-xl shadow-md border-l-8 border-blue-500">
-              <div className="flex flex-col md:flex-row justify-between items-start gap-4">
-                <div className="flex-1">
-                  <h3 className="text-2xl font-bold text-blue-900 mb-2">{aktivitet.tittel}</h3>
-                  <div className="flex gap-4 text-gray-600 mb-2">
-                    <span>📅 {aktivitet.dato}</span>
-                    <span>📍 {aktivitet.sted}</span>
+        {/* --- AKTIVITETSLISTE --- */}
+        <div>
+          <h3 className="text-2xl font-bold text-gray-800 mb-6 flex items-center gap-2">
+            <Calendar className="text-blue-500" />
+            {profil?.rolle === 'senior' ? 'Aktiviteter i nærheten' : 'Planlagte aktiviteter'}
+          </h3>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {aktiviteter.map((aktivitet) => (
+              <Link href={`/aktivitet/${aktivitet.id}`} key={aktivitet.id} className="block group">
+                <div className="bg-white h-full p-6 rounded-3xl shadow-sm border border-gray-100 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col">
+                  
+                  {/* Etikett */}
+                  <div className="flex justify-between items-start mb-4">
+                     <span className="bg-blue-50 text-blue-700 px-3 py-1 rounded-full text-sm font-bold">
+                        Aktivitet
+                     </span>
+                  </div>
+
+                  <h4 className="text-xl font-bold text-gray-800 mb-2 group-hover:text-blue-600 transition-colors">
+                    {aktivitet.tittel}
+                  </h4>
+                  
+                  {/* Info */}
+                  <div className="space-y-2 mt-auto pt-4 text-gray-500">
+                    <div className="flex items-center gap-2">
+                      <Calendar size={16} /> <span>{aktivitet.dato}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <MapPin size={16} /> <span className="truncate">{aktivitet.sted}</span>
+                    </div>
                   </div>
                 </div>
-                <Link 
-                  href={`/aktivitet/${aktivitet.id}`} 
-                  className="bg-blue-100 text-blue-800 px-6 py-3 rounded-lg font-bold hover:bg-blue-200"
-                >
-                  Se mer →
-                </Link>
-              </div>
-            </div>
-          ))}
+              </Link>
+            ))}
+          </div>
         </div>
 
       </main>
