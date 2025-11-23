@@ -22,6 +22,7 @@ export default function Chat({ activityId }: { activityId: string }) {
   const bunnRef = useRef<HTMLDivElement>(null)
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
   const audioChunksRef = useRef<Blob[]>([])
+  const [mimeType, setMimeType] = useState<string>('audio/webm') // Standard
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
@@ -60,10 +61,30 @@ export default function Chat({ activityId }: { activityId: string }) {
 
   // --- FUNKSJONER FOR LYDOPPTAK ---
 
+  // Hjelpefunksjon for å finne riktig format for mobilen
+  const getSupportedMimeType = () => {
+    const types = [
+      'audio/mp4',
+      'audio/webm;codecs=opus',
+      'audio/webm',
+      'audio/ogg'
+    ]
+    for (const type of types) {
+      if (MediaRecorder.isTypeSupported(type)) {
+        return type
+      }
+    }
+    return '' // Fallback
+  }
+
   const startRecording = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
-      const mediaRecorder = new MediaRecorder(stream)
+      
+      const supportedType = getSupportedMimeType()
+      setMimeType(supportedType) // Husk hvilken type vi valgte
+
+      const mediaRecorder = new MediaRecorder(stream, { mimeType: supportedType })
       mediaRecorderRef.current = mediaRecorder
       audioChunksRef.current = []
 
@@ -74,10 +95,10 @@ export default function Chat({ activityId }: { activityId: string }) {
       }
 
       mediaRecorder.onstop = async () => {
-        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' })
-        await sendAudioMessage(audioBlob)
+        // Bruk samme type når vi lager filen som da vi tok opp
+        const audioBlob = new Blob(audioChunksRef.current, { type: supportedType })
+        await sendAudioMessage(audioBlob, supportedType)
         
-        // Stopp alle spor for å slå av mikrofon-lyset i nettleseren
         stream.getTracks().forEach(track => track.stop())
       }
 
@@ -96,15 +117,20 @@ export default function Chat({ activityId }: { activityId: string }) {
     }
   }
 
-  const sendAudioMessage = async (audioBlob: Blob) => {
+  const sendAudioMessage = async (audioBlob: Blob, type: string) => {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
 
+    // Bestem filendelse basert på typen
+    const extension = type.includes('mp4') ? 'mp4' : 'webm'
+    const fileName = `${Date.now()}-tale.${extension}`
+
     // 1. Last opp filen til Supabase Storage
-    const fileName = `${Date.now()}-tale.webm`
     const { error: uploadError } = await supabase.storage
       .from('chat-audio')
-      .upload(fileName, audioBlob)
+      .upload(fileName, audioBlob, {
+        contentType: type // Viktig for at mobilen skal skjønne formatet
+      })
 
     if (uploadError) {
       alert('Kunne ikke laste opp lyd: ' + uploadError.message)
@@ -163,7 +189,6 @@ export default function Chat({ activityId }: { activityId: string }) {
         <p className="text-sm text-blue-700">Her kan dere snakke sammen</p>
       </div>
 
-      {/* Meldings-vinduet */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
         {messages.length === 0 && (
           <p className="text-center text-gray-400 mt-10">Ingen meldinger enda.</p>
@@ -197,10 +222,7 @@ export default function Chat({ activityId }: { activityId: string }) {
         <div ref={bunnRef} />
       </div>
 
-      {/* Skrivefelt og Mikrofon */}
       <div className="p-4 bg-white border-t border-gray-200 flex items-center gap-3">
-        
-        {/* Opptaksknapp */}
         <button
           onClick={isRecording ? stopRecording : startRecording}
           className={`p-4 rounded-full transition-all flex items-center justify-center shadow-md ${
@@ -210,11 +232,7 @@ export default function Chat({ activityId }: { activityId: string }) {
           }`}
           title={isRecording ? "Stopp opptak" : "Start opptak"}
         >
-          {isRecording ? (
-             <span className="text-2xl">⏹️</span>
-          ) : (
-             <span className="text-2xl">🎤</span>
-          )}
+          {isRecording ? <span className="text-2xl">⏹️</span> : <span className="text-2xl">🎤</span>}
         </button>
 
         <input
