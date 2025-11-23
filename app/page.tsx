@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
 import Link from 'next/link'
-import { MapPin, Calendar, Search, Users, ArrowRight, Sparkles, Filter } from 'lucide-react'
+import { MapPin, Calendar, Search, Users, ArrowRight, Loader2 } from 'lucide-react'
 
 type Aktivitet = { 
   id: string; 
@@ -52,152 +52,123 @@ export default function LandingPage() {
   }, [soketekst, alleAktiviteter])
 
   return (
-    <div className="min-h-screen pb-20 font-sans">
+    <div className="min-h-screen bg-gray-50 pb-20 font-sans text-slate-900">
       
-      {/* --- HEADER (Minimalistisk) --- */}
-      <nav className="fixed top-0 w-full z-50 bg-stone-50/80 backdrop-blur-xl border-b border-stone-100">
-        <div className="max-w-[1600px] mx-auto px-6 h-20 flex justify-between items-center">
-          <div className="flex items-center gap-2">
-            <div className="bg-stone-900 text-white p-2 rounded-xl">
-              <Sparkles size={18} />
-            </div>
-            <span className="text-xl font-bold tracking-tight text-stone-900">
-              NyeVenner
-            </span>
-          </div>
+      {/* --- HEADER --- */}
+      <nav className="bg-white border-b border-gray-200 sticky top-0 z-50">
+        <div className="max-w-[1400px] mx-auto px-4 sm:px-6 h-20 flex justify-between items-center">
+          <Link href="/" className="text-2xl font-black tracking-tight text-blue-900">
+            NyeVenner
+          </Link>
           <Link 
             href="/login" 
-            className="text-stone-900 font-bold hover:opacity-70 transition-opacity text-sm"
+            className="bg-slate-900 text-white px-5 py-2.5 rounded-full font-bold text-sm hover:bg-slate-700 transition-colors"
           >
             Logg inn
           </Link>
         </div>
       </nav>
 
-      {/* --- HERO SECTION (Stor tekst + Søk) --- */}
-      <section className="pt-32 pb-16 px-6 max-w-[1600px] mx-auto">
-        <div className="flex flex-col lg:flex-row gap-12 items-end justify-between">
-          
-          <div className="max-w-2xl">
-            <span className="inline-block px-4 py-2 rounded-full bg-orange-100 text-orange-800 text-xs font-bold uppercase tracking-widest mb-6">
-              Møteplassen 2025
-            </span>
-            <h1 className="text-5xl md:text-7xl font-black text-stone-900 leading-[0.95] tracking-tight mb-8">
-              Finn din neste <br />
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-500 to-rose-500">
-                hverdagsglede.
-              </span>
-            </h1>
-            <p className="text-xl text-stone-500 max-w-lg leading-relaxed">
-              Ingen store forpliktelser. Bare hyggelige folk som vil finne på noe sammen i ditt nabolag.
-            </p>
-          </div>
+      {/* --- HERO / SØK --- */}
+      <div className="bg-white border-b border-gray-200 py-16 px-4 text-center">
+        <div className="max-w-3xl mx-auto">
+          <h1 className="text-4xl md:text-5xl font-black text-slate-900 mb-4 tracking-tight">
+            Aktiviteter i ditt nabolag
+          </h1>
+          <p className="text-slate-500 text-lg mb-8">
+            Finn noen å dele opplevelser med. Trygt, enkelt og lokalt.
+          </p>
 
-          {/* SØKEBOKS (Stor og tydelig) */}
-          <div className="w-full lg:w-auto flex-1 max-w-xl">
-            <div className="bg-white p-2 rounded-[2rem] shadow-2xl shadow-stone-200/50 border border-stone-100 flex items-center">
-              <div className="pl-6 text-stone-400">
-                <Search size={24} />
-              </div>
-              <input 
-                type="text"
-                value={soketekst}
-                onChange={(e) => setSoketekst(e.target.value)}
-                placeholder="Hva vil du gjøre? (f.eks. Tur)"
-                className="w-full py-4 px-4 bg-transparent outline-none text-stone-800 text-lg placeholder:text-stone-400 font-medium"
-              />
-              <button className="bg-stone-900 text-white p-4 rounded-[1.5rem] hover:bg-stone-800 transition-colors hidden sm:block">
-                <Filter size={20} />
-              </button>
+          {/* Søkefelt */}
+          <div className="relative max-w-lg mx-auto">
+            <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">
+              <Search size={20} />
             </div>
+            <input 
+              type="text"
+              value={soketekst}
+              onChange={(e) => setSoketekst(e.target.value)}
+              placeholder="Søk etter sted eller aktivitet..."
+              className="w-full py-4 pl-12 pr-4 bg-gray-100 rounded-full text-slate-900 font-medium outline-none focus:ring-2 focus:ring-blue-500 transition-all border border-transparent focus:bg-white"
+            />
           </div>
-
         </div>
-      </section>
+      </div>
 
-      {/* --- AKTIVITETSKORT (Grid) --- */}
-      <section className="px-6 max-w-[1600px] mx-auto">
+      {/* --- AKTIVITETSLISTE --- */}
+      <section className="px-4 sm:px-6 py-12 max-w-[1400px] mx-auto">
         
-        <div className="flex items-center justify-between mb-8 border-b border-stone-200 pb-4">
-          <h2 className="text-2xl font-bold text-stone-900">
-            Kommende aktiviteter
-          </h2>
-          <span className="text-stone-400 text-sm font-medium bg-stone-100 px-3 py-1 rounded-full">
-            {aktiviteter.length} treff
-          </span>
+        <div className="flex items-center justify-between mb-8">
+          <h2 className="text-2xl font-bold text-slate-900">Kommende aktiviteter</h2>
         </div>
 
         {loading ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {[1,2,3,4].map(i => <div key={i} className="h-64 bg-stone-200 rounded-[2rem] animate-pulse"></div>)}
+          <div className="flex justify-center py-20">
+            <Loader2 className="animate-spin text-slate-300" size={40} />
           </div>
         ) : aktiviteter.length === 0 ? (
-          <div className="py-20 text-center bg-white rounded-[2.5rem] border border-stone-100">
-            <p className="text-stone-400 text-xl">Vi fant ingen aktiviteter akkurat nå.</p>
-            <button onClick={() => setSoketekst('')} className="mt-4 text-orange-600 font-bold underline">Nullstill søk</button>
+          <div className="text-center py-20 bg-white rounded-2xl border border-gray-200">
+            <p className="text-slate-400 text-lg">Vi fant ingen aktiviteter.</p>
+            <button onClick={() => setSoketekst('')} className="mt-2 text-blue-600 font-bold hover:underline">Nullstill søk</button>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          /* HER ER RUTENETTET: Garantert 4 på rad på stor skjerm */
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8">
             
-            {aktiviteter.map((aktivitet, index) => {
-              // Vi roterer litt på bakgrunnsfargen for å skape liv
-              const colors = ['bg-orange-50', 'bg-blue-50', 'bg-emerald-50', 'bg-purple-50', 'bg-pink-50'];
-              const bgColor = colors[index % colors.length];
-
-              return (
-                <Link href={`/aktivitet/${aktivitet.id}`} key={aktivitet.id} className="group h-full">
-                  <div className="bg-white rounded-[2.5rem] p-3 border border-stone-100 hover:border-stone-300 transition-all duration-300 hover:shadow-2xl hover:shadow-stone-200/50 hover:-translate-y-1 h-full flex flex-col">
+            {aktiviteter.map((aktivitet) => (
+              <Link href={`/aktivitet/${aktivitet.id}`} key={aktivitet.id} className="group flex flex-col h-full">
+                
+                {/* KORTET */}
+                <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden hover:shadow-xl transition-all duration-300 hover:-translate-y-1 flex flex-col h-full">
+                  
+                  {/* BILDE - LÅST HØYDE (h-48 = 192px) */}
+                  <div className="relative h-48 w-full bg-gray-100 overflow-hidden">
+                    <img 
+                      src={aktivitet.image_url || 'https://images.unsplash.com/photo-1543269865-cbf427effbad?q=80&w=600'} 
+                      alt={aktivitet.tittel}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                    />
                     
-                    {/* Bilde-seksjon (Liten og avrundet) */}
-                    <div className="relative h-40 w-full overflow-hidden rounded-[2rem] mb-4">
-                      <img 
-                        src={aktivitet.image_url || 'https://images.unsplash.com/photo-1543269865-cbf427effbad?q=80&w=600'} 
-                        alt={aktivitet.tittel}
-                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
-                      />
-                      {/* Dato-tag flytende oppå bildet */}
-                      <div className="absolute top-3 right-3 bg-white/95 backdrop-blur-sm px-3 py-1.5 rounded-xl text-xs font-bold uppercase tracking-wider text-stone-900 shadow-sm flex flex-col items-center leading-tight">
-                        <span className="text-[10px] text-stone-500">{aktivitet.dato.split(' ')[0]}</span>
-                        <span className="text-base">{aktivitet.dato.split(' ')[1].replace('.', '')}</span>
-                      </div>
+                    {/* Dato-lapp (Liten og diskret) */}
+                    <div className="absolute top-3 left-3 bg-white/95 backdrop-blur px-2.5 py-1 rounded-lg text-xs font-bold uppercase tracking-wider text-slate-900 shadow-sm flex items-center gap-1.5">
+                      <Calendar size={12} className="text-blue-600" />
+                      {aktivitet.dato.split(' ')[0]}
                     </div>
-
-                    {/* Innhold */}
-                    <div className="px-3 pb-3 flex flex-col flex-1">
-                      
-                      {/* Tittel */}
-                      <h3 className="text-xl font-bold text-stone-900 mb-2 leading-tight group-hover:text-orange-600 transition-colors">
-                        {aktivitet.tittel}
-                      </h3>
-
-                      {/* Info-rad */}
-                      <div className="mt-auto space-y-3">
-                        <div className="flex items-center gap-2 text-stone-600 text-sm font-medium bg-stone-50 p-2 rounded-xl">
-                          <MapPin size={16} className="text-stone-400 shrink-0" />
-                          <span className="truncate">{aktivitet.sted}</span>
-                        </div>
-
-                        <div className="flex justify-between items-center pt-2 border-t border-stone-50">
-                          <div className="flex items-center gap-1.5 text-stone-400 text-xs font-bold">
-                            <Users size={14} />
-                            <span>
-                              {aktivitet.max_deltakere 
-                                ? `${aktivitet.max_deltakere} plasser` 
-                                : 'Åpent for alle'}
-                            </span>
-                          </div>
-
-                          <div className="w-8 h-8 rounded-full bg-stone-900 text-white flex items-center justify-center group-hover:bg-orange-600 transition-colors">
-                            <ArrowRight size={14} />
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
                   </div>
-                </Link>
-              )
-            })}
+
+                  {/* TEKST - Under bildet */}
+                  <div className="p-5 flex flex-col flex-1">
+                    
+                    <h3 className="text-lg font-bold text-slate-900 mb-2 leading-tight group-hover:text-blue-600 transition-colors line-clamp-2">
+                      {aktivitet.tittel}
+                    </h3>
+
+                    <div className="mt-auto space-y-3">
+                      {/* Sted */}
+                      <div className="flex items-center gap-2 text-slate-600 text-sm font-medium">
+                        <MapPin size={16} className="text-slate-400 shrink-0" />
+                        <span className="truncate">{aktivitet.sted}</span>
+                      </div>
+
+                      {/* Footer i kortet */}
+                      <div className="pt-3 border-t border-gray-100 flex items-center justify-between">
+                        <div className="flex items-center gap-1.5 text-slate-500 text-xs font-medium bg-gray-50 px-2 py-1 rounded-md">
+                          <Users size={14} />
+                          <span>
+                            {aktivitet.max_deltakere ? `${aktivitet.max_deltakere} plasser` : 'Åpent'}
+                          </span>
+                        </div>
+                        
+                        <div className="text-slate-300 group-hover:text-blue-600 transition-colors">
+                          <ArrowRight size={18} />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                </div>
+              </Link>
+            ))}
           </div>
         )}
       </section>
@@ -206,9 +177,9 @@ export default function LandingPage() {
       <div className="fixed bottom-8 right-8 z-40">
         <Link 
           href="/ny-aktivitet" 
-          className="bg-stone-900 text-white px-8 py-4 rounded-full font-bold shadow-2xl hover:bg-orange-600 hover:scale-105 transition-all flex items-center gap-2"
+          className="bg-blue-600 text-white px-6 py-4 rounded-full font-bold shadow-xl hover:bg-blue-700 hover:scale-105 transition-all flex items-center gap-2"
         >
-          <span className="text-2xl font-light leading-none mb-1">+</span> Lag aktivitet
+          <span className="text-2xl leading-none font-light mb-1">+</span> Lag aktivitet
         </Link>
       </div>
 
