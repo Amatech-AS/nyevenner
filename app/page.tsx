@@ -14,7 +14,6 @@ export default function LandingPage() {
 
   useEffect(() => {
     async function hentSisteAktiviteter() {
-      // Hent de 6 nyeste aktivitetene
       const { data } = await supabase
         .from('activities')
         .select('*')
@@ -30,7 +29,7 @@ export default function LandingPage() {
   return (
     <div className="min-h-screen bg-[#F8FAFC] font-sans text-slate-800">
       
-      {/* --- HEADER / MENY --- */}
+      {/* --- HEADER --- */}
       <nav className="sticky top-0 z-50 bg-white/80 backdrop-blur-lg border-b border-gray-100">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-20">
@@ -58,11 +57,11 @@ export default function LandingPage() {
         </div>
       </nav>
 
-      {/* --- HERO SEKSJON (Blikkfang) --- */}
+      {/* --- HERO --- */}
       <section className="relative pt-20 pb-32 overflow-hidden">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
           <div className="text-center max-w-3xl mx-auto mb-16">
-            <div className="inline-block bg-blue-50 border border-blue-100 text-blue-700 px-4 py-1 rounded-full font-bold text-sm mb-6 animate-fade-in-up">
+            <div className="inline-block bg-blue-50 border border-blue-100 text-blue-700 px-4 py-1 rounded-full font-bold text-sm mb-6">
               ✨ Norges hyggeligste møteplass
             </div>
             <h1 className="text-5xl md:text-7xl font-black text-slate-900 mb-6 tracking-tight leading-tight">
@@ -82,22 +81,22 @@ export default function LandingPage() {
             </div>
           </div>
 
-          {/* Bildegalleri / Visuals */}
+          {/* Bilder */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-12">
             <div className="rounded-3xl overflow-hidden shadow-2xl h-64 md:h-80 relative group">
-              <img src="https://images.unsplash.com/photo-1571221715454-da8c31278c6e?q=80&w=800&auto=format&fit=crop" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" alt="Eldre på tur" />
+              <img src="https://images.unsplash.com/photo-1571221715454-da8c31278c6e?q=80&w=800&auto=format&fit=crop" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" alt="Tur" />
               <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-6">
                 <p className="text-white font-bold text-lg">Gå turer sammen</p>
               </div>
             </div>
             <div className="rounded-3xl overflow-hidden shadow-2xl h-64 md:h-80 relative group md:-mt-10">
-              <img src="https://images.unsplash.com/photo-1516307365426-bea591f05011?q=80&w=800&auto=format&fit=crop" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" alt="Venner som ler" />
+              <img src="https://images.unsplash.com/photo-1516307365426-bea591f05011?q=80&w=800&auto=format&fit=crop" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" alt="Sosialt" />
               <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-6">
                 <p className="text-white font-bold text-lg">Sosiale treff</p>
               </div>
             </div>
             <div className="rounded-3xl overflow-hidden shadow-2xl h-64 md:h-80 relative group">
-              <img src="https://images.unsplash.com/photo-1478131143081-80f7f84ca84d?q=80&w=800&auto=format&fit=crop" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" alt="Hobby og aktivitet" />
+              <img src="https://images.unsplash.com/photo-1478131143081-80f7f84ca84d?q=80&w=800&auto=format&fit=crop" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" alt="Hobby" />
               <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-6">
                 <p className="text-white font-bold text-lg">Del hobbyer</p>
               </div>
@@ -135,7 +134,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* --- LIVE AKTIVITETS-FEED --- */}
+      {/* --- LIVE FEED --- */}
       <section id="aktiviteter" className="py-24 bg-slate-50">
         <div className="max-w-7xl mx-auto px-4">
           <div className="flex justify-between items-end mb-12">
@@ -143,9 +142,6 @@ export default function LandingPage() {
               <span className="text-blue-600 font-bold tracking-wider uppercase text-sm">Akkurat nå</span>
               <h2 className="text-3xl md:text-4xl font-black text-slate-900 mt-2">Siste aktiviteter</h2>
             </div>
-            <Link href="/login" className="hidden md:flex items-center gap-2 text-blue-600 font-bold hover:underline">
-              Se alle aktiviteter <ArrowRight size={20} />
-            </Link>
           </div>
 
           {loading ? (
@@ -197,11 +193,6 @@ export default function LandingPage() {
             NyeVenner
           </h2>
           <p className="text-gray-500 mb-8">Laget med omtanke for fellesskapet ❤️</p>
-          <div className="flex justify-center gap-6 text-gray-400">
-            <span>© 2025 Amatech AS</span>
-            <span>Personvern</span>
-            <span>Kontakt oss</span>
-          </div>
         </div>
       </footer>
 
