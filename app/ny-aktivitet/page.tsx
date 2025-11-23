@@ -65,12 +65,12 @@ export default function NyAktivitetPage() {
         beskrivelse,
         dato: tolketDato,
         sted: stedInput,
-        max_deltakere: ingenBegrensning ? null : parseInt(antallPlasser), // Null betyr ubegrenset
+        max_deltakere: ingenBegrensning ? null : parseInt(antallPlasser),
         creator_id: user.id
       })
 
       if (!error) {
-        router.push('/minside')
+        router.push('/') // Sender tilbake til forsiden etter lagring
         router.refresh()
       } else {
         alert(error.message)
@@ -89,10 +89,10 @@ export default function NyAktivitetPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#F3F4F6] p-4 flex justify-center items-start pt-10">
-      <div className="bg-white p-6 md:p-10 rounded-2xl shadow-lg w-full max-w-2xl border border-gray-200">
+    <div className="min-h-screen bg-[#F3F4F6] p-4 flex justify-center items-start pt-10 font-sans">
+      <div className="bg-white p-6 md:p-10 rounded-3xl shadow-lg w-full max-w-2xl border border-gray-200">
         
-        <h1 className="text-3xl font-bold text-slate-900 mb-8 border-b pb-4">
+        <h1 className="text-3xl font-black text-slate-900 mb-8 border-b border-gray-100 pb-4">
           Planlegg aktivitet
         </h1>
         
@@ -106,7 +106,7 @@ export default function NyAktivitetPage() {
               value={tittel}
               onChange={(e) => setTittel(e.target.value)}
               placeholder="F.eks. Tur rundt vannet"
-              className="w-full p-4 bg-slate-50 border-2 border-slate-200 rounded-xl text-xl focus:border-blue-600 outline-none"
+              className="w-full p-4 bg-slate-50 border-2 border-slate-200 rounded-xl text-xl focus:border-blue-600 outline-none transition-colors"
             />
           </div>
 
@@ -118,9 +118,9 @@ export default function NyAktivitetPage() {
               value={datoInput}
               onChange={(e) => setDatoInput(e.target.value)}
               placeholder="F.eks. Lørdag kl 12"
-              className="w-full p-4 bg-slate-50 border-2 border-slate-200 rounded-xl text-xl focus:border-blue-600 outline-none"
+              className="w-full p-4 bg-slate-50 border-2 border-slate-200 rounded-xl text-xl focus:border-blue-600 outline-none transition-colors"
             />
-            {tolketDato && <p className="text-green-700 mt-2 font-medium">✅ Oppfattet: {tolketDato}</p>}
+            {tolketDato && <p className="text-green-700 mt-2 font-medium bg-green-50 p-2 rounded-lg inline-block">✅ Oppfattet: {tolketDato}</p>}
           </div>
 
           <div>
@@ -131,12 +131,12 @@ export default function NyAktivitetPage() {
               value={stedInput}
               onChange={(e) => setStedInput(e.target.value)}
               placeholder="F.eks. Ved inngangen til biblioteket"
-              className="w-full p-4 bg-slate-50 border-2 border-slate-200 rounded-xl text-xl focus:border-blue-600 outline-none"
+              className="w-full p-4 bg-slate-50 border-2 border-slate-200 rounded-xl text-xl focus:border-blue-600 outline-none transition-colors"
             />
           </div>
 
           {/* Antall deltakere */}
-          <div className="bg-blue-50 p-6 rounded-xl border border-blue-100">
+          <div className="bg-blue-50 p-6 rounded-2xl border border-blue-100">
             <label className="flex items-center gap-2 text-lg font-bold text-slate-900 mb-4">
               <Users className="text-blue-600" /> Hvor mange kan være med?
             </label>
@@ -147,21 +147,21 @@ export default function NyAktivitetPage() {
                 id="unlimited" 
                 checked={ingenBegrensning} 
                 onChange={(e) => setIngenBegrensning(e.target.checked)}
-                className="w-6 h-6 text-blue-600 rounded focus:ring-blue-500"
+                className="w-6 h-6 text-blue-600 rounded focus:ring-blue-500 cursor-pointer"
               />
-              <label htmlFor="unlimited" className="text-xl text-slate-800 cursor-pointer">
+              <label htmlFor="unlimited" className="text-lg text-slate-800 cursor-pointer font-medium">
                 Det er plass til alle (Ingen begrensning)
               </label>
             </div>
 
             {!ingenBegrensning && (
-              <div className="flex items-center gap-4 animate-fade-in">
-                <span className="text-lg">Maks antall personer:</span>
+              <div className="flex items-center gap-4 animate-in fade-in slide-in-from-top-2">
+                <span className="text-lg font-medium text-slate-700">Maks antall personer:</span>
                 <input 
                   type="number" 
                   value={antallPlasser}
                   onChange={(e) => setAntallPlasser(e.target.value)}
-                  className="w-24 p-3 border-2 border-blue-200 rounded-lg text-xl font-bold text-center"
+                  className="w-24 p-3 border-2 border-blue-200 rounded-lg text-xl font-bold text-center outline-none focus:border-blue-600"
                 />
               </div>
             )}
@@ -171,3 +171,33 @@ export default function NyAktivitetPage() {
             <label className="flex items-center gap-2 text-lg font-bold text-slate-700 mb-2">
               <FileText className="text-blue-600" /> Ekstra informasjon
             </label>
+            <textarea 
+              value={beskrivelse}
+              onChange={(e) => setBeskrivelse(e.target.value)}
+              rows={3}
+              placeholder="Skriv litt om hva som skal skje..."
+              className="w-full p-4 bg-slate-50 border-2 border-slate-200 rounded-xl text-xl focus:border-blue-600 outline-none transition-colors"
+            />
+          </div>
+
+          <div className="flex gap-4 pt-6">
+            <button 
+              onClick={() => router.back()} 
+              className="px-8 py-4 text-slate-500 font-bold hover:bg-gray-100 rounded-xl transition-colors"
+            >
+              Avbryt
+            </button>
+            <button 
+              onClick={lagreAktivitet}
+              disabled={loading}
+              className="flex-1 bg-slate-900 text-white text-xl font-bold py-4 rounded-xl hover:bg-slate-800 shadow-xl hover:shadow-2xl transition-all hover:-translate-y-1 flex items-center justify-center gap-2"
+            >
+              {loading ? <Loader2 className="animate-spin" /> : 'Publiser aktivitet'}
+            </button>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  )
+}
