@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
 import Link from 'next/link'
-import { MapPin, Calendar, Search, Users, ArrowRight, Loader2 } from 'lucide-react'
+import { MapPin, Search, Users, ArrowRight, Loader2 } from 'lucide-react'
 
 type Aktivitet = { 
   id: string; 
@@ -28,7 +28,7 @@ export default function LandingPage() {
         .from('activities')
         .select('*')
         .order('created_at', { ascending: false })
-        .limit(12)
+        .limit(12) // Henter 12 stk
       
       if (data) {
         setAktiviteter(data)
@@ -52,17 +52,17 @@ export default function LandingPage() {
   }, [soketekst, alleAktiviteter])
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-20 font-sans text-slate-900">
+    <div className="min-h-screen bg-gray-50 pb-24 font-sans text-slate-900">
       
       {/* --- HEADER --- */}
-      <nav className="bg-white border-b border-gray-200 sticky top-0 z-50">
-        <div className="max-w-[1400px] mx-auto px-4 sm:px-6 h-20 flex justify-between items-center">
-          <Link href="/" className="text-2xl font-black tracking-tight text-blue-900">
-            NyeVenner
+      <nav className="bg-white border-b border-gray-100 sticky top-0 z-50">
+        <div className="max-w-[1400px] mx-auto px-6 h-20 flex justify-between items-center">
+          <Link href="/" className="text-2xl font-black tracking-tight flex items-center gap-2">
+            <span className="text-blue-600">🤝</span> NyeVenner
           </Link>
           <Link 
             href="/login" 
-            className="bg-slate-900 text-white px-5 py-2.5 rounded-full font-bold text-sm hover:bg-slate-700 transition-colors"
+            className="text-sm font-bold text-slate-700 hover:text-blue-600 transition-colors"
           >
             Logg inn
           </Link>
@@ -70,36 +70,34 @@ export default function LandingPage() {
       </nav>
 
       {/* --- HERO / SØK --- */}
-      <div className="bg-white border-b border-gray-200 py-16 px-4 text-center">
-        <div className="max-w-3xl mx-auto">
-          <h1 className="text-4xl md:text-5xl font-black text-slate-900 mb-4 tracking-tight">
-            Aktiviteter i ditt nabolag
+      <div className="bg-white py-16 px-6 text-center border-b border-gray-100">
+        <div className="max-w-2xl mx-auto">
+          <h1 className="text-4xl md:text-6xl font-black text-slate-900 mb-6 tracking-tight">
+            Finn aktiviteter <br className="hidden md:block" />i ditt nabolag
           </h1>
-          <p className="text-slate-500 text-lg mb-8">
-            Finn noen å dele opplevelser med. Trygt, enkelt og lokalt.
-          </p>
-
-          {/* Søkefelt */}
-          <div className="relative max-w-lg mx-auto">
-            <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">
-              <Search size={20} />
-            </div>
+          
+          {/* Søkefelt (SuperTrouper stil: Enkel og ren) */}
+          <div className="relative max-w-lg mx-auto mt-8">
             <input 
               type="text"
               value={soketekst}
               onChange={(e) => setSoketekst(e.target.value)}
-              placeholder="Søk etter sted eller aktivitet..."
-              className="w-full py-4 pl-12 pr-4 bg-gray-100 rounded-full text-slate-900 font-medium outline-none focus:ring-2 focus:ring-blue-500 transition-all border border-transparent focus:bg-white"
+              placeholder="Søk etter aktivitet eller sted..."
+              className="w-full py-4 pl-6 pr-14 bg-gray-100 rounded-full text-slate-900 font-medium outline-none focus:ring-2 focus:ring-blue-500/20 focus:bg-white transition-all border border-transparent"
             />
+            <div className="absolute right-2 top-2 p-2 bg-blue-600 rounded-full text-white">
+              <Search size={20} />
+            </div>
           </div>
         </div>
       </div>
 
-      {/* --- AKTIVITETSLISTE --- */}
-      <section className="px-4 sm:px-6 py-12 max-w-[1400px] mx-auto">
+      {/* --- AKTIVITETSLISTE (SuperTrouper Grid) --- */}
+      <section className="px-6 py-16 max-w-[1400px] mx-auto">
         
-        <div className="flex items-center justify-between mb-8">
-          <h2 className="text-2xl font-bold text-slate-900">Kommende aktiviteter</h2>
+        <div className="flex items-center justify-between mb-10">
+          <h2 className="text-2xl font-bold text-slate-900">Oppdag nye aktiviteter</h2>
+          <span className="text-slate-500 text-sm font-medium">{aktiviteter.length} treff</span>
         </div>
 
         {loading ? (
@@ -108,65 +106,48 @@ export default function LandingPage() {
           </div>
         ) : aktiviteter.length === 0 ? (
           <div className="text-center py-20 bg-white rounded-2xl border border-gray-200">
-            <p className="text-slate-400 text-lg">Vi fant ingen aktiviteter.</p>
-            <button onClick={() => setSoketekst('')} className="mt-2 text-blue-600 font-bold hover:underline">Nullstill søk</button>
+            <p className="text-slate-400 text-lg">Ingen aktiviteter funnet.</p>
+            <button onClick={() => setSoketekst('')} className="mt-2 text-blue-600 font-bold hover:underline">Nullstill</button>
           </div>
         ) : (
-          /* HER ER RUTENETTET: Garantert 4 på rad på stor skjerm */
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8">
+          /* RUTENETTET: SuperTrouper bruker ofte 4 i bredden på desktop */
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-6 gap-y-10">
             
             {aktiviteter.map((aktivitet) => (
-              <Link href={`/aktivitet/${aktivitet.id}`} key={aktivitet.id} className="group flex flex-col h-full">
+              <Link href={`/aktivitet/${aktivitet.id}`} key={aktivitet.id} className="group flex flex-col cursor-pointer">
                 
-                {/* KORTET */}
-                <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden hover:shadow-xl transition-all duration-300 hover:-translate-y-1 flex flex-col h-full">
+                {/* BILDE - Høyt format (Portrait / 3:4 aspect ratio) */}
+                <div className="relative aspect-[3/4] w-full overflow-hidden rounded-2xl bg-gray-200 mb-4 shadow-sm group-hover:shadow-xl transition-all duration-300 group-hover:-translate-y-1">
+                  <img 
+                    src={aktivitet.image_url || 'https://images.unsplash.com/photo-1543269865-cbf427effbad?q=80&w=600'} 
+                    alt={aktivitet.tittel}
+                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                  />
                   
-                  {/* BILDE - LÅST HØYDE (h-48 = 192px) */}
-                  <div className="relative h-48 w-full bg-gray-100 overflow-hidden">
-                    <img 
-                      src={aktivitet.image_url || 'https://images.unsplash.com/photo-1543269865-cbf427effbad?q=80&w=600'} 
-                      alt={aktivitet.tittel}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                    />
-                    
-                    {/* Dato-lapp (Liten og diskret) */}
-                    <div className="absolute top-3 left-3 bg-white/95 backdrop-blur px-2.5 py-1 rounded-lg text-xs font-bold uppercase tracking-wider text-slate-900 shadow-sm flex items-center gap-1.5">
-                      <Calendar size={12} className="text-blue-600" />
-                      {aktivitet.dato.split(' ')[0]}
-                    </div>
+                  {/* Dato-badge (Ligner på "Kategori"-taggen til SuperTrouper) */}
+                  <div className="absolute top-3 left-3 bg-white/95 backdrop-blur px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider text-slate-900 shadow-sm">
+                    {aktivitet.dato.split(' ')[0]}
                   </div>
 
-                  {/* TEKST - Under bildet */}
-                  <div className="p-5 flex flex-col flex-1">
-                    
-                    <h3 className="text-lg font-bold text-slate-900 mb-2 leading-tight group-hover:text-blue-600 transition-colors line-clamp-2">
-                      {aktivitet.tittel}
-                    </h3>
-
-                    <div className="mt-auto space-y-3">
-                      {/* Sted */}
-                      <div className="flex items-center gap-2 text-slate-600 text-sm font-medium">
-                        <MapPin size={16} className="text-slate-400 shrink-0" />
-                        <span className="truncate">{aktivitet.sted}</span>
-                      </div>
-
-                      {/* Footer i kortet */}
-                      <div className="pt-3 border-t border-gray-100 flex items-center justify-between">
-                        <div className="flex items-center gap-1.5 text-slate-500 text-xs font-medium bg-gray-50 px-2 py-1 rounded-md">
-                          <Users size={14} />
-                          <span>
-                            {aktivitet.max_deltakere ? `${aktivitet.max_deltakere} plasser` : 'Åpent'}
-                          </span>
-                        </div>
-                        
-                        <div className="text-slate-300 group-hover:text-blue-600 transition-colors">
-                          <ArrowRight size={18} />
-                        </div>
-                      </div>
-                    </div>
+                  {/* "Ledige plasser" badge nede */}
+                  <div className="absolute bottom-3 left-3 bg-black/60 backdrop-blur text-white px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <Users size={12} />
+                    {aktivitet.max_deltakere ? `${aktivitet.max_deltakere} plasser` : 'Åpent'}
                   </div>
-
                 </div>
+
+                {/* TEKST - Rent under bildet */}
+                <div className="px-1">
+                  <h3 className="text-lg font-bold text-slate-900 mb-1 leading-snug group-hover:text-blue-600 transition-colors">
+                    {aktivitet.tittel}
+                  </h3>
+                  
+                  <div className="flex items-center gap-1.5 text-slate-500 text-sm font-medium">
+                    <MapPin size={14} className="shrink-0" />
+                    <span className="truncate">{aktivitet.sted}</span>
+                  </div>
+                </div>
+
               </Link>
             ))}
           </div>
@@ -177,9 +158,9 @@ export default function LandingPage() {
       <div className="fixed bottom-8 right-8 z-40">
         <Link 
           href="/ny-aktivitet" 
-          className="bg-blue-600 text-white px-6 py-4 rounded-full font-bold shadow-xl hover:bg-blue-700 hover:scale-105 transition-all flex items-center gap-2"
+          className="bg-slate-900 text-white px-6 py-4 rounded-full font-bold shadow-2xl hover:bg-blue-600 hover:scale-105 transition-all flex items-center gap-2"
         >
-          <span className="text-2xl leading-none font-light mb-1">+</span> Lag aktivitet
+          <span className="text-2xl leading-none font-light mb-1">+</span> <span className="text-sm">Lag aktivitet</span>
         </Link>
       </div>
 
