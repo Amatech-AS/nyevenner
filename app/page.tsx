@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
 import Link from 'next/link'
-import { MapPin, Calendar, ArrowRight, Search, Users } from 'lucide-react'
+import { MapPin, Calendar, Search, Users, ArrowRight } from 'lucide-react'
 
 type Aktivitet = { 
   id: string; 
@@ -17,13 +17,12 @@ type Aktivitet = {
 export default function LandingPage() {
   const supabase = createClient()
   const [aktiviteter, setAktiviteter] = useState<Aktivitet[]>([])
-  const [alleAktiviteter, setAlleAktiviteter] = useState<Aktivitet[]>([]) // For søk
+  const [alleAktiviteter, setAlleAktiviteter] = useState<Aktivitet[]>([])
   const [soketekst, setSoketekst] = useState('')
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     async function hentData() {
-      // Vi henter 8 aktiviteter som bestilt
       const { data } = await supabase
         .from('activities')
         .select('*')
@@ -39,7 +38,6 @@ export default function LandingPage() {
     hentData()
   }, [])
 
-  // Enkel søkefunksjon
   useEffect(() => {
     if (!soketekst.trim()) {
       setAktiviteter(alleAktiviteter)
@@ -52,20 +50,36 @@ export default function LandingPage() {
     }
   }, [soketekst, alleAktiviteter])
 
+  // Funksjon som gir en unik, moderne farge til hver tittel
+  const getTitleColor = (id: string) => {
+    // Liste over moderne farger (ikke for blasse, men behagelige)
+    const colors = [
+      'text-blue-600',    // Blå
+      'text-emerald-600', // Grønn
+      'text-rose-500',    // Rød/Rosa
+      'text-violet-600',  // Lilla
+      'text-amber-600',   // Oransje/Gul
+      'text-cyan-600',    // Turkis
+      'text-indigo-600',  // Mørkeblå
+      'text-pink-600'     // Rosa
+    ]
+    // Velg farge basert på siste tegn i ID-en (så den alltid er lik for samme aktivitet)
+    const index = id.charCodeAt(id.length - 1) % colors.length
+    return colors[index]
+  }
+
   return (
-    <div className="min-h-screen bg-[#F8FAFC]">
+    <div className="min-h-screen bg-[#FAFAFA] font-sans selection:bg-blue-100 selection:text-blue-900">
       
       {/* --- HEADER --- */}
-      <nav className="bg-white border-b border-gray-200">
-        <div className="max-w-6xl mx-auto px-4 h-20 flex justify-between items-center">
-          <div className="flex items-center gap-2">
-            <span className="text-3xl font-black text-blue-900 tracking-tight">
-              NyeVenner
-            </span>
-          </div>
+      <nav className="bg-white/80 backdrop-blur-md sticky top-0 z-50">
+        <div className="max-w-6xl mx-auto px-6 h-20 flex justify-between items-center">
+          <Link href="/" className="text-2xl font-bold tracking-tight text-slate-900 hover:opacity-80 transition-opacity">
+            NyeVenner
+          </Link>
           <Link 
             href="/login" 
-            className="bg-blue-600 text-white px-6 py-2.5 rounded-lg font-bold hover:bg-blue-700 transition-colors shadow-sm"
+            className="text-sm font-semibold bg-slate-900 text-white px-5 py-2.5 rounded-full hover:bg-slate-700 transition-all"
           >
             Logg inn
           </Link>
@@ -73,110 +87,114 @@ export default function LandingPage() {
       </nav>
 
       {/* --- HERO / SØK --- */}
-      <div className="bg-blue-900 text-white py-16 px-4 text-center">
-        <h1 className="text-3xl md:text-5xl font-bold mb-4">Finn noen å finne på noe med</h1>
-        <p className="text-blue-100 text-lg mb-8 max-w-2xl mx-auto">
-          En enkel oversikt over hyggelige aktiviteter i ditt nærområde. Helt gratis.
+      <div className="px-6 py-20 md:py-32 max-w-4xl mx-auto text-center">
+        <h1 className="text-4xl md:text-6xl font-extrabold text-slate-900 tracking-tight mb-6 leading-[1.1]">
+          Finn noen å finne på <br className="hidden md:block"/> noe sammen med.
+        </h1>
+        <p className="text-slate-500 text-xl mb-10 max-w-2xl mx-auto leading-relaxed">
+          En enkel oversikt over hyggelige aktiviteter i ditt nærområde. 
+          Helt gratis og åpent for alle.
         </p>
 
-        {/* Stort søkefelt */}
-        <div className="max-w-2xl mx-auto relative">
-          <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">
-            <Search size={24} />
+        {/* Minimalistisk søkefelt (Ingen rammer, kun skygge) */}
+        <div className="relative max-w-xl mx-auto group">
+          <div className="absolute inset-0 bg-blue-200 rounded-full blur-xl opacity-20 group-hover:opacity-30 transition-opacity"></div>
+          <div className="relative bg-white rounded-full p-2 flex items-center shadow-xl shadow-slate-200/50">
+            <div className="pl-4 text-slate-400">
+              <Search size={22} />
+            </div>
+            <input 
+              type="text"
+              value={soketekst}
+              onChange={(e) => setSoketekst(e.target.value)}
+              placeholder="Søk etter sted eller aktivitet..."
+              className="w-full py-3 px-4 bg-transparent outline-none text-slate-800 text-lg placeholder:text-slate-400"
+            />
           </div>
-          <input 
-            type="text"
-            value={soketekst}
-            onChange={(e) => setSoketekst(e.target.value)}
-            placeholder="Søk etter sted (f.eks. Trondheim) eller aktivitet..."
-            className="w-full pl-14 pr-6 py-5 rounded-full text-gray-900 text-xl font-medium outline-none shadow-xl focus:ring-4 focus:ring-blue-500/30"
-          />
         </div>
       </div>
 
       {/* --- AKTIVITETSLISTE --- */}
-      <section className="py-12 px-4 max-w-6xl mx-auto">
-        <div className="flex items-end justify-between mb-8 border-b border-gray-200 pb-4">
-          <h2 className="text-2xl font-bold text-gray-800">Kommende aktiviteter</h2>
-          <span className="text-gray-500 font-medium">Viser {aktiviteter.length} aktiviteter</span>
+      <section className="px-6 pb-24 max-w-5xl mx-auto">
+        <div className="mb-12 flex items-baseline justify-between">
+          <h2 className="text-2xl font-bold text-slate-900 tracking-tight">Kommende aktiviteter</h2>
+          <span className="text-slate-400 text-sm font-medium">{aktiviteter.length} aktiviteter funnet</span>
         </div>
 
         {loading ? (
-          <div className="text-center py-20 text-gray-500 text-xl">Laster inn listen...</div>
+          <div className="text-center py-20 text-slate-400">Laster inn...</div>
         ) : aktiviteter.length === 0 ? (
-          <div className="text-center py-20 bg-white rounded-2xl border border-gray-200">
-            <p className="text-gray-500 text-xl">Vi fant ingen aktiviteter som passet søket ditt.</p>
-            <button onClick={() => setSoketekst('')} className="mt-4 text-blue-600 font-bold underline">
-              Vis alle igjen
+          <div className="text-center py-20">
+            <p className="text-slate-500 text-lg">Ingen treff på søket ditt.</p>
+            <button onClick={() => setSoketekst('')} className="mt-2 text-blue-600 font-bold hover:underline">
+              Vis alt
             </button>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 gap-4"> 
+            {/* Endret til 1 kolonne for bedre fokus på tekst, eller grid-cols-2 for desktop */}
+            <div className="grid gap-6 sm:grid-cols-2">
+            
             {aktiviteter.map((aktivitet) => (
-              <Link href={`/aktivitet/${aktivitet.id}`} key={aktivitet.id} className="group">
-                <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm hover:shadow-lg hover:border-blue-300 transition-all duration-200 flex items-start gap-6 h-full">
+              <Link href={`/aktivitet/${aktivitet.id}`} key={aktivitet.id} className="group block h-full">
+                {/* KORTET - Helt uten border, kun hvit bakgrunn og soft hover */}
+                <div className="bg-white rounded-3xl p-6 h-full transition-all duration-300 hover:scale-[1.01] hover:shadow-2xl hover:shadow-slate-200/50 flex flex-col justify-between">
                   
-                  {/* Dato-boks (Veldig tydelig) */}
-                  <div className="hidden sm:flex flex-col items-center justify-center bg-blue-50 text-blue-800 rounded-xl w-24 h-24 flex-shrink-0 border border-blue-100">
-                    <Calendar size={24} className="mb-1 text-blue-500" />
-                    <span className="text-xs font-bold uppercase tracking-wider">Dato</span>
-                    {/* Vi prøver å vise kort dato hvis mulig, ellers bare 'Se info' */}
-                    <span className="text-sm font-bold text-center px-2 line-clamp-2 leading-tight">
-                       {aktivitet.dato.split(' ')[0]} {/* Viser bare ukedagen/første ord for enkelhet */}
-                    </span>
-                  </div>
+                  <div>
+                    {/* Dato (Liten og diskret overskrift) */}
+                    <div className="flex items-center gap-2 text-slate-400 text-xs font-bold uppercase tracking-wider mb-3">
+                      <Calendar size={14} />
+                      <span>{aktivitet.dato}</span>
+                    </div>
 
-                  <div className="flex-1 min-w-0">
-                    <h3 className="text-2xl font-bold text-gray-900 mb-2 group-hover:text-blue-700 transition-colors leading-tight">
+                    {/* Tittel med unik farge */}
+                    <h3 className={`text-2xl font-bold mb-3 leading-tight group-hover:opacity-80 transition-opacity ${getTitleColor(aktivitet.id)}`}>
                       {aktivitet.tittel}
                     </h3>
                     
-                    <div className="flex flex-col gap-2 mt-3">
-                      <div className="flex items-center gap-2 text-gray-600 text-lg">
-                        <MapPin size={20} className="text-red-500 flex-shrink-0" />
-                        <span className="truncate font-medium">{aktivitet.sted}</span>
-                      </div>
-                      
-                      <div className="flex items-center gap-2 text-gray-600">
-                        <Calendar size={20} className="text-gray-400 sm:hidden flex-shrink-0" />
-                        <span className="sm:hidden text-sm">{aktivitet.dato}</span>
-                      </div>
+                    {/* Sted */}
+                    <div className="flex items-center gap-2 text-slate-600 font-medium mb-1">
+                      <MapPin size={18} className="text-slate-300" />
+                      <span className="truncate">{aktivitet.sted}</span>
+                    </div>
 
-                      {/* Info om deltakere */}
-                      <div className="flex items-center gap-2 text-gray-500 text-sm mt-1">
-                        <Users size={16} />
-                        <span>
-                          {aktivitet.max_deltakere 
-                            ? `Plass til ${aktivitet.max_deltakere} personer` 
-                            : 'Åpent for alle (Ingen begrensning)'}
-                        </span>
-                      </div>
+                    {/* Deltakere */}
+                    <div className="flex items-center gap-2 text-slate-400 text-sm">
+                      <Users size={16} className="text-slate-300" />
+                      <span>
+                        {aktivitet.max_deltakere 
+                          ? `${aktivitet.max_deltakere} plasser` 
+                          : 'Ingen begrensning'}
+                      </span>
                     </div>
                   </div>
 
-                  <div className="self-center bg-gray-50 p-3 rounded-full text-gray-400 group-hover:bg-blue-600 group-hover:text-white transition-colors">
-                    <ArrowRight size={24} />
+                  {/* "Les mer" pil som dukker opp ved hover */}
+                  <div className="mt-6 flex justify-end opacity-0 group-hover:opacity-100 transition-opacity transform translate-x-[-10px] group-hover:translate-x-0">
+                    <div className="bg-slate-50 p-2 rounded-full text-slate-900">
+                      <ArrowRight size={20} />
+                    </div>
                   </div>
 
                 </div>
               </Link>
             ))}
+            </div>
           </div>
         )}
 
-        <div className="mt-16 text-center bg-blue-50 p-10 rounded-2xl border border-blue-100">
-          <h3 className="text-2xl font-bold text-blue-900 mb-4">Vil du lage din egen aktivitet?</h3>
-          <p className="text-blue-800 mb-6 text-lg">Det er helt gratis, og du bestemmer selv hvor mange som kan komme.</p>
-          <Link href="/login" className="inline-block bg-blue-600 text-white px-8 py-4 rounded-xl font-bold text-xl hover:bg-blue-700 shadow-lg">
-            Opprett aktivitet
+        <div className="mt-24 text-center">
+          <p className="text-slate-500 mb-6 text-lg">Vil du arrangere noe selv?</p>
+          <Link href="/login" className="inline-block bg-slate-100 text-slate-900 px-8 py-4 rounded-full font-bold text-lg hover:bg-slate-200 transition-colors">
+            Lag en aktivitet
           </Link>
         </div>
 
       </section>
 
-      {/* --- FOOTER --- */}
-      <footer className="bg-white py-12 border-t border-gray-200 text-center mt-12">
-        <p className="text-gray-400 font-medium">© 2025 NyeVenner - En møteplass for alle</p>
+      {/* --- ENKEL FOOTER --- */}
+      <footer className="py-12 text-center text-slate-400 text-sm">
+        <p>© 2025 NyeVenner</p>
       </footer>
     </div>
   )

@@ -16,12 +16,28 @@ export default function NyAktivitetPage() {
   const [tolketDato, setTolketDato] = useState<string>('')
   const [stedInput, setStedInput] = useState('')
   
-  // NYTT: Antall deltakere
+  // Antall deltakere
   const [ingenBegrensning, setIngenBegrensning] = useState(true)
   const [antallPlasser, setAntallPlasser] = useState('5')
 
   const [loading, setLoading] = useState(false)
+  const [checkingAuth, setCheckingAuth] = useState(true)
 
+  // 1. SJEKK OM BRUKER ER LOGGET INN
+  useEffect(() => {
+    const sjekkLogin = async () => {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) {
+        // Hvis ikke logget inn -> Send til login-siden
+        router.push('/login')
+      } else {
+        setCheckingAuth(false)
+      }
+    }
+    sjekkLogin()
+  }, [])
+
+  // 2. TOLK DATO MENS BRUKER SKRIVER
   useEffect(() => {
     const results = chrono.parse(datoInput, new Date(), { forwardDate: true })
     if (results.length > 0) {
@@ -61,6 +77,15 @@ export default function NyAktivitetPage() {
       }
     }
     setLoading(false)
+  }
+
+  // Vis laste-spinner mens vi sjekker om brukeren er logget inn
+  if (checkingAuth) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#F3F4F6]">
+        <Loader2 className="animate-spin text-blue-600" size={48} />
+      </div>
+    )
   }
 
   return (
@@ -110,7 +135,7 @@ export default function NyAktivitetPage() {
             />
           </div>
 
-          {/* NYTT: Antall deltakere */}
+          {/* Antall deltakere */}
           <div className="bg-blue-50 p-6 rounded-xl border border-blue-100">
             <label className="flex items-center gap-2 text-lg font-bold text-slate-900 mb-4">
               <Users className="text-blue-600" /> Hvor mange kan være med?
@@ -146,26 +171,3 @@ export default function NyAktivitetPage() {
             <label className="flex items-center gap-2 text-lg font-bold text-slate-700 mb-2">
               <FileText className="text-blue-600" /> Ekstra informasjon
             </label>
-            <textarea 
-              value={beskrivelse}
-              onChange={(e) => setBeskrivelse(e.target.value)}
-              rows={3}
-              className="w-full p-4 bg-slate-50 border-2 border-slate-200 rounded-xl text-xl focus:border-blue-600 outline-none"
-            />
-          </div>
-
-          <div className="flex gap-4 pt-4">
-            <button onClick={() => router.back()} className="px-8 py-4 text-slate-500 font-bold hover:bg-gray-100 rounded-xl">Avbryt</button>
-            <button 
-              onClick={lagreAktivitet}
-              disabled={loading}
-              className="flex-1 bg-blue-600 text-white text-xl font-bold py-4 rounded-xl hover:bg-blue-700 shadow-md"
-            >
-              {loading ? <Loader2 className="animate-spin mx-auto" /> : 'Publiser aktivitet'}
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-  )
-}
