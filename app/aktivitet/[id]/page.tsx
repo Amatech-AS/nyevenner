@@ -6,9 +6,10 @@ import { useParams, useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import Chat from '@/components/Chat';
 import LoginModal from '@/components/LoginModal';
-import { ArrowLeft, Calendar, MapPin, CheckCircle, XCircle, Users, Loader2, Info, Coins, Edit2, Trash2 } from 'lucide-react';
+import TextToSpeech from '@/components/TextToSpeech'; // <-- NY
+import { ArrowLeft, Calendar, MapPin, CheckCircle, XCircle, Users, Loader2, Info, Coins, Edit2, Trash2, Navigation } from 'lucide-react';
 
-// Laster kartet (liten boks)
+// Laster kartet
 const Map = dynamic(() => import('@/components/Map'), { 
   ssr: false, 
   loading: () => <div style={{height:'200px', background:'#f1f5f9', display:'flex', alignItems:'center', justifyContent:'center', color:'#94a3b8'}}>Laster kart...</div> 
@@ -22,7 +23,7 @@ type AktivitetType = {
   sted: string; 
   max_deltakere: number | null; 
   image_url: string | null;
-  price: number; // Nytt felt for pris
+  price: number;
   creator_id: string;
 }
 
@@ -88,7 +89,7 @@ export default function AktivitetDetalj() {
       
       <div style={{ maxWidth: '1100px', margin: '0 auto', padding: '40px 20px' }}>
         
-        {/* TOPP-LINJE: Tilbake + Redigeringsknapper */}
+        {/* TOPP-LINJE */}
         <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'32px'}}>
             <button onClick={() => router.back()} style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'white', padding: '10px 20px', borderRadius: '99px', border: '1px solid #e2e8f0', cursor: 'pointer', fontWeight: 'bold', color: '#64748b', fontSize: '14px', boxShadow: '0 2px 5px rgba(0,0,0,0.05)' }}>
             <ArrowLeft size={16} /> Tilbake
@@ -102,10 +103,9 @@ export default function AktivitetDetalj() {
             )}
         </div>
 
-        {/* HOVED LAYOUT: Flexbox (Side-om-side på PC, under hverandre på mobil) */}
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '32px', alignItems: 'flex-start' }}>
             
-            {/* VENSTRE SIDE: TEKST (Fyller mest plass) */}
+            {/* VENSTRE SIDE */}
             <div style={{ flex: '2', minWidth: '300px', backgroundColor: 'white', padding: '40px', borderRadius: '24px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px rgba(0,0,0,0.02)' }}>
               
               <div style={{display:'flex', gap:'12px', marginBottom:'24px', flexWrap:'wrap'}}>
@@ -117,11 +117,13 @@ export default function AktivitetDetalj() {
               
               <h1 style={{ fontSize: '42px', fontWeight: '900', color: '#0f172a', marginBottom: '32px', lineHeight: '1.1' }}>{aktivitet.tittel}</h1>
               
+              {/* NYTT: Les opp knapp */}
+              <TextToSpeech text={`${aktivitet.tittel}. ${aktivitet.beskrivelse}`} />
+
               <div style={{ paddingBottom: '32px', borderBottom: '1px solid #f1f5f9', marginBottom: '32px', color: '#334155', fontSize: '18px', lineHeight: '1.6', whiteSpace: 'pre-wrap' }}>
                 {aktivitet.beskrivelse}
               </div>
 
-              {/* CHAT */}
               {erPaameldt ? (
                 <div style={{marginTop:'20px'}}>
                   <h3 style={{ fontWeight: 'bold', marginBottom: '16px', fontSize:'20px', color:'#0f172a' }}>💬 Samtale</h3>
@@ -131,24 +133,24 @@ export default function AktivitetDetalj() {
                 <div style={{ background: '#eff6ff', padding: '24px', borderRadius: '16px', color: '#1e40af', display: 'flex', gap: '16px', alignItems: 'center', border:'1px solid #dbeafe' }}>
                   <div style={{background:'white', padding:'10px', borderRadius:'50%'}}><Info size={24} /></div>
                   <div>
-                      <p style={{fontWeight:'bold'}}>Dette er en lukket chat</p>
-                      <p style={{ fontSize: '14px', opacity:0.8 }}>Meld deg på aktiviteten for å se beskjeder og snakke med de andre.</p>
+                      <p style={{fontWeight:'bold'}}>Lukket chat</p>
+                      <p style={{ fontSize: '14px', opacity:0.8 }}>Meld deg på for å snakke med de andre.</p>
                   </div>
                 </div>
               )}
             </div>
 
-            {/* HØYRE SIDE: SIDEBAR (Bilde, Pris, Info) */}
+            {/* HØYRE SIDE */}
             <div style={{ flex: '1', minWidth: '300px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
               
-              {/* BILDE BOKS */}
+              {/* BILDE */}
               <div style={{ backgroundColor: 'white', padding: '8px', borderRadius: '24px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px rgba(0,0,0,0.05)' }}>
                 <div style={{ width: '100%', aspectRatio: '4/3', borderRadius: '16px', overflow: 'hidden', backgroundColor: '#f1f5f9' }}>
                   <img src={aktivitet.image_url || ''} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" />
                 </div>
               </div>
 
-              {/* PRIS BOKS */}
+              {/* PRIS */}
               <div style={{ backgroundColor: 'white', padding: '24px', borderRadius: '24px', border: '1px solid #e2e8f0', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center' }}>
                  <p style={{ fontSize: '12px', fontWeight: 'bold', textTransform: 'uppercase', color: '#94a3b8', marginBottom: '4px' }}>Pris per person</p>
                  {aktivitet.price > 0 ? (
@@ -160,7 +162,7 @@ export default function AktivitetDetalj() {
                  )}
               </div>
 
-              {/* STATUS OG KNAPP */}
+              {/* STATUS */}
               <div style={{ backgroundColor: 'white', padding: '24px', borderRadius: '24px', border: '1px solid #e2e8f0', textAlign: 'center' }}>
                 <p style={{ fontSize: '12px', fontWeight: 'bold', textTransform: 'uppercase', color: '#94a3b8', marginBottom: '8px' }}>Ledige plasser</p>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', marginBottom: '24px' }}>
@@ -192,15 +194,25 @@ export default function AktivitetDetalj() {
                 )}
               </div>
 
-              {/* KART */}
-              <div style={{ backgroundColor: 'white', padding: '16px', borderRadius: '24px', border: '1px solid #e2e8f0' }}>
-                <p style={{ fontWeight: 'bold', marginBottom: '12px', display: 'flex', gap: '8px', alignItems:'center', color:'#334155' }}>
+              {/* KART MED VEIBESKRIVELSE */}
+              <div style={{ backgroundColor: 'white', padding: '24px', borderRadius: '24px', border: '1px solid #e2e8f0' }}>
+                <div style={{ fontWeight: 'bold', marginBottom: '16px', display: 'flex', gap: '8px', alignItems:'center', color:'#334155' }}>
                     <div style={{background:'#eff6ff', padding:'8px', borderRadius:'50%'}}><MapPin size={16} color="#2563eb"/></div>
                     {aktivitet.sted}
-                </p>
-                <div style={{ height: '180px', borderRadius: '16px', overflow: 'hidden', border:'1px solid #e2e8f0' }}>
+                </div>
+                <div style={{ height: '180px', borderRadius: '16px', overflow: 'hidden', border:'1px solid #e2e8f0', marginBottom:'16px' }}>
                     <Map adresse={aktivitet.sted} />
                 </div>
+                
+                {/* NYTT: Veibeskrivelse knapp */}
+                <a 
+                  href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(aktivitet.sted)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', width: '100%', padding: '12px', borderRadius: '12px', border: '1px solid #e2e8f0', background: 'white', color: '#334155', fontWeight: 'bold', fontSize: '14px', textDecoration: 'none' }}
+                >
+                  <Navigation size={16} /> Veibeskrivelse
+                </a>
               </div>
 
             </div>
