@@ -1,15 +1,12 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
-import "./globals.css";
+import "./globals.css"; // <--- DENNE LINJEN ER KRITISK!
 
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "NyeVenner - Aktiviteter nær deg",
-  description: "En møteplass for sosiale aktiviteter og nye vennskap.",
-  icons: {
-    icon: "https://fav.farm/🤝", // Dette er et triks for å få en emoji som ikon kjapt!
-  },
+  title: "NyeVenner",
+  description: "Aktiviteter for alle",
 };
 
 export default function RootLayout({
