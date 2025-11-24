@@ -26,7 +26,7 @@ export default function LandingPage() {
         .from('activities')
         .select('*')
         .order('created_at', { ascending: false })
-        .limit(12) // 12 aktiviteter gir 3 pene rader på PC
+        .limit(12)
       
       if (data) setAktiviteter(data)
       setLoading(false)
@@ -35,95 +35,108 @@ export default function LandingPage() {
   }, [])
 
   return (
-    <div className="min-h-screen bg-white font-sans text-slate-900 pb-24">
+    <div className="min-h-screen bg-gray-50 pb-20 text-slate-900 font-sans">
       
-      {/* HEADER */}
-      <nav className="border-b border-gray-100 sticky top-0 bg-white/95 backdrop-blur z-50">
-        <div className="max-w-[1200px] mx-auto px-4 h-16 flex justify-between items-center">
-          <h1 className="text-xl font-black tracking-tight">NyeVenner</h1>
-          <Link href="/login" className="text-xs font-bold bg-black text-white px-4 py-2 rounded-full">
-            Logg inn
-          </Link>
+      {/* HEADER - Standard Tailwind UI Navbar */}
+      <nav className="bg-white border-b border-gray-200 sticky top-0 z-50">
+        <div className="mx-auto max-w-screen-xl px-4 sm:px-6 lg:px-8">
+          <div className="flex h-16 items-center justify-between">
+            <div className="flex-1 md:flex md:items-center md:gap-12">
+              <Link href="/" className="block text-blue-600 text-xl font-black tracking-tight">
+                NyeVenner
+              </Link>
+            </div>
+
+            <div className="flex items-center gap-4">
+              <div className="sm:flex sm:gap-4">
+                <Link
+                  className="rounded-md bg-blue-600 px-5 py-2.5 text-sm font-medium text-white shadow transition hover:bg-blue-700"
+                  href="/login"
+                >
+                  Logg inn
+                </Link>
+              </div>
+            </div>
+          </div>
         </div>
       </nav>
 
-      <main className="max-w-[1200px] mx-auto px-4 py-6">
+      <main className="mx-auto max-w-screen-xl px-4 py-8 sm:px-6 sm:py-12 lg:px-8">
         
-        <h2 className="text-xl font-bold mb-6 text-slate-900">Aktiviteter</h2>
+        <header className="mb-8">
+          <h2 className="text-xl font-bold text-gray-900 sm:text-3xl">
+            Aktiviteter
+          </h2>
+          <p className="mt-2 max-w-md text-gray-500">
+            Finn aktiviteter i ditt nærområde.
+          </p>
+        </header>
 
         {loading ? (
-          <div className="flex justify-center py-10">
-            <Loader2 className="animate-spin text-slate-300" size={24} />
+          <div className="flex justify-center py-20">
+            <Loader2 className="animate-spin text-gray-400" size={32} />
           </div>
         ) : (
           /* 
-             RUTENETT (GRID):
-             grid-cols-2 = 2 fliser i bredden på MOBIL (smått!)
-             md:grid-cols-3 = 3 på nettbrett
-             lg:grid-cols-4 = 4 på PC
-             gap-3 = Tett mellomrom for å spare plass
+             TEMPLATE: "Product Grid" fra HyperUI / Tailwind UI
+             Dette oppsettet garanterer 2 kolonner på små skjermer og 4 på store.
           */
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-6">
+          <ul className="grid gap-4 grid-cols-2 lg:grid-cols-4">
             
             {aktiviteter.map((aktivitet) => (
-              <Link href={`/aktivitet/${aktivitet.id}`} key={aktivitet.id} className="group flex flex-col">
-                
-                {/* 
-                    BILDE - LITEN STRIPE
-                    aspect-video (16:9) gjør bildet lavt og bredt, ikke høyt.
-                    rounded-md = lett avrundet, ikke store bobler.
-                */}
-                <div className="relative w-full aspect-video overflow-hidden rounded-md bg-gray-100 mb-2">
-                  <img 
-                    src={aktivitet.image_url || 'https://images.unsplash.com/photo-1543269865-cbf427effbad?q=80&w=400'} 
-                    alt={aktivitet.tittel}
-                    className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-                  />
-                  {/* Dato - Liten tekst oppå bildet */}
-                  <div className="absolute bottom-1 right-1 bg-black/70 text-white px-1.5 py-0.5 rounded text-[10px] font-bold">
-                    {aktivitet.dato ? aktivitet.dato.split(' ')[0] : 'Dato'}
-                  </div>
-                </div>
-
-                {/* TEKST - FOKUSOMRÅDET */}
-                <div className="flex flex-col">
-                  {/* Tittel: Tykk og tydelig */}
-                  <h3 className="text-sm md:text-base font-black text-slate-900 leading-tight mb-1 line-clamp-2 group-hover:underline">
-                    {aktivitet.tittel}
-                  </h3>
+              <li key={aktivitet.id}>
+                <Link href={`/aktivitet/${aktivitet.id}`} className="group block overflow-hidden rounded-lg bg-white border border-gray-200 shadow-sm hover:shadow-md transition-all">
                   
-                  {/* Sted: Mindre og grått */}
-                  <div className="flex items-center gap-1 text-slate-500 text-xs mb-1.5">
-                    <MapPin size={12} className="shrink-0" />
-                    <span className="truncate">{aktivitet.sted}</span>
+                  {/* BILDE - Låst til 16:9 format (lavt rektangel) */}
+                  <div className="relative h-[120px] sm:h-[150px] w-full overflow-hidden bg-gray-100">
+                    <img
+                      src={aktivitet.image_url || 'https://images.unsplash.com/photo-1543269865-cbf427effbad?q=80&w=400'}
+                      alt=""
+                      className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+                    />
+                    {/* Liten etikett nede i høyre hjørne */}
+                    <span className="absolute bottom-2 right-2 bg-white/90 px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-gray-900 rounded shadow-sm">
+                      {aktivitet.dato ? aktivitet.dato.split(' ')[0] : 'Dato'}
+                    </span>
                   </div>
 
-                  {/* Detaljer: Minst viktig, nederst */}
-                  <div className="flex items-center justify-between border-t border-gray-100 pt-1.5 mt-auto">
-                    <div className="flex items-center gap-1 text-[10px] text-slate-400 font-medium">
-                      <Calendar size={10} />
-                      <span>{aktivitet.dato ? aktivitet.dato.split(',')[0] : ''}</span>
+                  {/* INNHOLD - Kompakt tekst */}
+                  <div className="relative p-3 sm:p-4 bg-white">
+                    <h3 className="text-sm sm:text-base font-bold text-gray-900 group-hover:underline group-hover:underline-offset-4 line-clamp-1">
+                      {aktivitet.tittel}
+                    </h3>
+
+                    <div className="mt-1.5 flex items-center gap-1 text-xs text-gray-500">
+                      <MapPin size={12} className="shrink-0" />
+                      <p className="truncate">{aktivitet.sted}</p>
                     </div>
-                    <div className="flex items-center gap-1 text-[10px] text-slate-400 font-medium">
-                      <Users size={10} />
-                      <span>{aktivitet.max_deltakere ? `${aktivitet.max_deltakere} pl.` : 'Åpent'}</span>
+
+                    <div className="mt-3 flex items-center justify-between text-xs text-gray-500 border-t border-gray-100 pt-3">
+                      <div className="flex items-center gap-1">
+                        <Calendar size={12} />
+                        <span>{aktivitet.dato ? aktivitet.dato.split(',')[0] : ''}</span>
+                      </div>
+                      
+                      <div className="flex items-center gap-1">
+                        <Users size={12} />
+                        <span>{aktivitet.max_deltakere || 'Åpent'}</span>
+                      </div>
                     </div>
                   </div>
-                </div>
-
-              </Link>
+                </Link>
+              </li>
             ))}
-          </div>
+          </ul>
         )}
       </main>
 
-      {/* Knapp */}
+      {/* Flytende knapp (FAB) */}
       <div className="fixed bottom-6 right-6 z-40">
         <Link 
           href="/ny-aktivitet" 
-          className="bg-black text-white px-5 py-3 rounded-full font-bold shadow-lg text-sm flex items-center gap-2"
+          className="inline-flex items-center gap-2 rounded-full bg-gray-900 px-6 py-3 text-sm font-medium text-white shadow-xl hover:bg-gray-800 hover:scale-105 transition-transform"
         >
-          + Lag ny
+          <span className="text-lg font-light leading-none">+</span> Ny
         </Link>
       </div>
 
