@@ -2,26 +2,76 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Her bruker vi vanlig CSS for å unngå build-feil */
+
 body {
-  @apply bg-slate-100 text-slate-900 antialiased;
+  background-color: #f1f5f9; /* Samme som bg-slate-100 */
+  color: #0f172a; /* Samme som text-slate-900 */
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
 }
 
-/* Felles stil for alle "Whamageddon-aktige" kort */
+/* .card erstatter @apply bg-white rounded-3xl shadow-lg border border-slate-100 */
 .card {
-  @apply bg-white rounded-3xl shadow-lg border border-slate-100 overflow-hidden;
+  background-color: white;
+  border-radius: 1.5rem; /* 24px */
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  border: 1px solid #e2e8f0;
+  overflow: hidden;
 }
 
-/* Felles stil for input-felter */
+/* .input-field style */
 .input-field {
-  @apply w-full p-4 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all;
+  width: 100%;
+  padding: 1rem;
+  background-color: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.75rem; /* 12px */
+  outline: none;
+  transition: all 0.2s;
 }
 
-/* Felles stil for knapper */
+.input-field:focus {
+  border-color: #3b82f6; /* blue-500 */
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+}
+
+/* .btn-primary style */
 .btn-primary {
-  @apply bg-blue-600 text-white font-bold py-4 px-6 rounded-xl shadow-md hover:bg-blue-700 hover:scale-[1.02] transition-all active:scale-95 text-center flex justify-center items-center gap-2;
+  background-color: #2563eb; /* blue-600 */
+  color: white;
+  font-weight: 700;
+  padding: 1rem 1.5rem;
+  border-radius: 0.75rem;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  transition: all 0.2s;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 0.5rem;
 }
 
+.btn-primary:hover {
+  background-color: #1d4ed8; /* blue-700 */
+  transform: scale(1.02);
+}
+
+.btn-primary:active {
+  transform: scale(0.95);
+}
+
+/* .btn-secondary style */
 .btn-secondary {
-  @apply bg-white text-slate-700 font-bold py-4 px-6 rounded-xl border border-slate-200 hover:bg-slate-50 transition-all text-center;
+  background-color: white;
+  color: #334155;
+  font-weight: 700;
+  padding: 1rem 1.5rem;
+  border-radius: 0.75rem;
+  border: 1px solid #e2e8f0;
+  text-align: center;
+  transition: all 0.2s;
+}
+
+.btn-secondary:hover {
+  background-color: #f8fafc;
 }
