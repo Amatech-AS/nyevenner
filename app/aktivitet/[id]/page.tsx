@@ -54,32 +54,35 @@ export default function AktivitetDetalj() {
   if (!aktivitet) return <div>Fant ikke</div>
 
   return (
-    <div className="min-h-screen p-4 md:p-8 flex justify-center items-start pt-12">
+    <div className="min-h-screen pb-20 bg-slate-100">
       {showModal && <LoginModal onClose={() => setShowModal(false)} />}
       
-      <div className="w-full max-w-4xl grid md:grid-cols-3 gap-6">
+      {/* BANNER-BILDE */}
+      <div className="h-64 w-full relative bg-slate-900">
+        <img src={aktivitet.image_url || ''} className="w-full h-full object-cover opacity-80" />
+        <div className="absolute inset-0 bg-gradient-to-t from-slate-900/80 to-transparent"></div>
+        <div className="absolute bottom-0 left-0 w-full p-4 max-w-4xl mx-auto">
+           <h1 className="text-3xl md:text-4xl font-black text-white mb-2">{aktivitet.tittel}</h1>
+           <p className="text-white/90 flex items-center gap-2"><MapPin size={16}/> {aktivitet.sted}</p>
+        </div>
+        <button onClick={() => router.back()} className="absolute top-4 left-4 bg-white/20 backdrop-blur text-white px-4 py-2 rounded-full font-bold text-sm hover:bg-white/30 transition-colors flex items-center gap-2">
+          <ArrowLeft size={16} /> Tilbake
+        </button>
+      </div>
+
+      <div className="w-full max-w-4xl mx-auto grid md:grid-cols-3 gap-6 p-4 -mt-8 relative z-10">
         
         {/* VENSTRE: INFO */}
         <div className="md:col-span-2 space-y-6">
-          <div className="card p-0">
-            <div className="h-64 w-full bg-slate-200 relative">
-              <img src={aktivitet.image_url || ''} className="w-full h-full object-cover" />
-              <button onClick={() => router.back()} className="absolute top-4 left-4 bg-white/90 backdrop-blur px-4 py-2 rounded-full font-bold text-sm hover:scale-105 transition-transform flex items-center gap-2">
-                <ArrowLeft size={16} /> Tilbake
-              </button>
+          <div className="card p-8">
+            <div className="flex items-center gap-3 mb-6 text-blue-700 font-bold bg-blue-50 w-fit px-4 py-2 rounded-lg">
+               <Calendar size={20}/> {aktivitet.dato}
             </div>
-            <div className="p-8">
-              <h1 className="text-3xl md:text-4xl font-black text-slate-900 mb-4">{aktivitet.tittel}</h1>
-              <div className="flex flex-wrap gap-3 mb-8">
-                <span className="bg-blue-50 text-blue-800 px-3 py-1 rounded-lg font-bold text-sm flex gap-2 items-center"><Calendar size={16}/> {aktivitet.dato}</span>
-                <span className="bg-slate-100 text-slate-700 px-3 py-1 rounded-lg font-bold text-sm flex gap-2 items-center"><MapPin size={16}/> {aktivitet.sted}</span>
-              </div>
-              <p className="text-lg text-slate-600 leading-relaxed">{aktivitet.beskrivelse}</p>
-            </div>
+            <p className="text-lg text-slate-700 leading-relaxed whitespace-pre-wrap">{aktivitet.beskrivelse}</p>
           </div>
           
           <div className="card p-6">
-            <h3 className="font-bold mb-4 flex items-center gap-2"><MapPin className="text-blue-600"/> Kart</h3>
+            <h3 className="font-bold mb-4 flex items-center gap-2 text-slate-700"><MapPin className="text-blue-600"/> Kart</h3>
             <div className="rounded-xl overflow-hidden border border-slate-200"><Map adresse={aktivitet.sted} /></div>
           </div>
         </div>
@@ -97,8 +100,8 @@ export default function AktivitetDetalj() {
           {erPaameldt ? (
             <div className="card overflow-hidden"><Chat activityId={id as string} /></div>
           ) : (
-            <div className="bg-blue-50 p-6 rounded-3xl border border-blue-100 text-blue-800 text-sm text-center font-medium">
-              Meld deg på for å chatte.
+            <div className="bg-blue-50 p-6 rounded-2xl border border-blue-100 text-blue-800 text-sm text-center font-medium">
+              Meld deg på for å se chatten og snakke med de andre.
             </div>
           )}
         </div>
