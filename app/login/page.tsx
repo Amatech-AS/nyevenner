@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
 import { useRouter } from 'next/navigation'
-import { Mail, Lock, Loader2 } from 'lucide-react' // Ikoner
+import { Loader2 } from 'lucide-react'
 
 export default function LoginPage() {
   const [email, setEmail] = useState('')
@@ -32,84 +32,50 @@ export default function LoginPage() {
     setLoading(false)
   }
 
-  const handleGoogleLogin = async () => {
-    await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        redirectTo: `${location.origin}/auth/callback`,
-      },
-    })
-  }
-
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-50 via-white to-blue-100 p-4">
-      <div className="bg-white/80 backdrop-blur-xl p-8 md:p-12 rounded-3xl shadow-2xl w-full max-w-md border border-white/50">
+    <div className="min-h-screen flex items-center justify-center p-4">
+      <div className="card w-full max-w-md p-8 md:p-10">
         
-        <div className="text-center mb-10">
-          <h1 className="text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600 mb-2">
-            NyeVenner
-          </h1>
-          <p className="text-gray-500">Din møteplass i hverdagen</p>
+        <div className="text-center mb-8">
+          <h1 className="text-3xl font-black text-slate-900">Velkommen 👋</h1>
+          <p className="text-slate-500 mt-2">Logg inn for å bli med</p>
         </div>
 
-        <div className="space-y-5">
-          {/* Google Knapp */}
-          <button 
-            onClick={handleGoogleLogin}
-            className="w-full bg-white border border-gray-300 text-gray-700 py-4 rounded-2xl font-semibold flex items-center justify-center gap-3 hover:bg-gray-50 transition-all shadow-sm group"
-          >
-            <img src="https://authjs.dev/img/providers/google.svg" className="w-6 h-6 group-hover:scale-110 transition-transform" alt="Google" />
-            Fortsett med Google
-          </button>
-
-          <div className="relative flex py-2 items-center">
-            <div className="flex-grow border-t border-gray-200"></div>
-            <span className="flex-shrink-0 mx-4 text-gray-400 text-sm">eller bruk e-post</span>
-            <div className="flex-grow border-t border-gray-200"></div>
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-bold text-slate-700 mb-2 ml-1">E-post</label>
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="input-field"
+              placeholder="din@epost.no"
+            />
+          </div>
+          
+          <div>
+            <label className="block text-sm font-bold text-slate-700 mb-2 ml-1">Passord</label>
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="input-field"
+              placeholder="******"
+            />
           </div>
 
-          <div className="space-y-4">
-            <div className="relative">
-              <Mail className="absolute left-4 top-4 text-gray-400" size={20} />
-              <input
-                type="email"
-                placeholder="E-postadresse"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full pl-12 pr-4 py-4 bg-gray-50 border border-gray-200 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 transition-all"
-              />
-            </div>
-            <div className="relative">
-              <Lock className="absolute left-4 top-4 text-gray-400" size={20} />
-              <input
-                type="password"
-                placeholder="Passord"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full pl-12 pr-4 py-4 bg-gray-50 border border-gray-200 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 transition-all"
-              />
-            </div>
-          </div>
+          {message && <div className="p-3 bg-amber-50 text-amber-800 rounded-lg text-sm text-center">{message}</div>}
 
-          {message && <p className="text-red-500 text-center bg-red-50 p-2 rounded-lg">{message}</p>}
-
-          <div className="flex gap-3 pt-2">
-            <button
-              onClick={handleLogin}
-              disabled={loading}
-              className="flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-4 rounded-2xl font-bold hover:shadow-lg hover:scale-[1.02] transition-all flex justify-center items-center"
-            >
+          <div className="pt-4 flex flex-col gap-3">
+            <button onClick={handleLogin} disabled={loading} className="btn-primary w-full">
               {loading ? <Loader2 className="animate-spin" /> : 'Logg inn'}
             </button>
-            <button
-              onClick={handleSignUp}
-              disabled={loading}
-              className="flex-1 bg-white text-blue-600 border-2 border-blue-100 py-4 rounded-2xl font-bold hover:bg-blue-50 transition-all"
-            >
-              Ny bruker
+            <button onClick={handleSignUp} disabled={loading} className="btn-secondary w-full">
+              Ny bruker? Registrer deg
             </button>
           </div>
         </div>
+
       </div>
     </div>
   )
