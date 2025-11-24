@@ -13,6 +13,7 @@ export const metadata: Metadata = {
     description: "Finn noen å finne på noe med. Se aktiviteter i nærheten av deg.",
     type: "website",
     locale: "nb_NO",
+    siteName: "NyeVenner",
   },
 };
 
