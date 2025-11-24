@@ -29,8 +29,8 @@ const getSmartImage = (tittel: string, id: string) => {
 
 export default function LandingPage() {
   const supabase = createClient();
-  const [aktiviteter, setAktiviteter] = useState<any[]>([]);
-  const [mineAktiviteter, setMineAktiviteter] = useState<any[]>([]);
+  const [aktiviteter, setAktiviteter] = useState<Aktivitet[]>([]);
+  const [mineAktiviteter, setMineAktiviteter] = useState<Aktivitet[]>([]);
   const [soketekst, setSoketekst] = useState('');
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<any>(null);
@@ -96,8 +96,10 @@ export default function LandingPage() {
             <div style={{ height: '160px', width: '100%', position: 'relative', backgroundColor: '#F1F5F9' }}>
                <img src={imageUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: erFullt && !erMin ? 0.5 : 1 }} />
                
-               <div style={{ position: 'absolute', top: '8px', left: '8px', background: 'rgba(0,0,0,0.7)', backdropFilter:'blur(4px)', padding: '4px 8px', borderRadius: '6px', color: 'white', fontSize: '11px', fontWeight: 'bold', display:'flex', alignItems:'center', gap:'4px' }}>
-                  <Calendar size={12}/> {aktivitet.dato.split(',')[0]}
+               <div style={{ position: 'absolute', top: '8px', left: '8px', right: '8px', display:'flex', justifyContent:'space-between' }}>
+                 <div style={{ background: 'rgba(0,0,0,0.7)', backdropFilter:'blur(4px)', padding: '4px 8px', borderRadius: '6px', color: 'white', fontSize: '11px', fontWeight: 'bold', display:'flex', alignItems:'center', gap:'4px' }}>
+                    <Calendar size={12}/> {aktivitet.dato.split(',')[0]}
+                 </div>
                </div>
 
                {erFullt && !erMin && (
@@ -137,7 +139,6 @@ export default function LandingPage() {
              <div style={{ background: '#0f172a', padding: '10px', borderRadius: '12px', color: 'white', display: 'flex', boxShadow: '0 4px 10px rgba(0,0,0,0.1)' }}><Smile size={24} strokeWidth={2.5} /></div>
              <div>
                <h1 style={{ fontSize: '24px', fontWeight: '900', color: '#0f172a', lineHeight: '1', letterSpacing: '-0.5px' }}>NyeVenner</h1>
-               {/* NY LINK TIL GUIDE */}
                <Link href="/hvordan-virker-det" style={{ fontSize: '12px', fontWeight: 'bold', color: '#2563eb', textDecoration: 'underline' }}>Hvordan virker det?</Link>
              </div>
            </div>
@@ -148,13 +149,14 @@ export default function LandingPage() {
            )}
         </div>
 
+        {/* SØK OG FILTER */}
         <div style={{ maxWidth: '600px', margin: '0 auto 48px auto', display:'flex', gap:'12px', alignItems:'center' }}>
            <div style={{ position: 'relative', flex: 1 }}>
              <input placeholder="Søk etter aktivitet eller sted..." value={soketekst} onChange={e=>setSoketekst(e.target.value)} style={{ width: '100%', padding: '16px 16px 16px 48px', borderRadius: '16px', border: '2px solid #e2e8f0', fontSize: '16px', fontWeight: '600', outline: 'none', boxShadow: '0 4px 6px rgba(0,0,0,0.02)' }} />
              <div style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }}><Search size={20} /></div>
            </div>
            
-           {/* NY FILTER KNAPP */}
+           {/* FILTER KNAPP */}
            {user && (
              <button 
                onClick={() => setKunNaerMeg(!kunNaerMeg)}
@@ -162,8 +164,7 @@ export default function LandingPage() {
                  padding: '16px 24px', borderRadius: '16px', fontWeight: 'bold', cursor: 'pointer', border: '2px solid', 
                  backgroundColor: kunNaerMeg ? '#eff6ff' : 'white', 
                  borderColor: kunNaerMeg ? '#2563eb' : '#e2e8f0',
-                 color: kunNaerMeg ? '#1e3a8a' : '#64748b',
-                 whiteSpace: 'nowrap'
+                 color: kunNaerMeg ? '#1e3a8a' : '#64748b'
                }}
              >
                {kunNaerMeg ? '📍 Viser nær meg' : '🌍 Vis alle'}
