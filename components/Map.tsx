@@ -1,43 +1,66 @@
 'use client'
 
-import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet'
+import { useEffect, useState } from 'react'
+import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet'
 import 'leaflet/dist/leaflet.css'
 import L from 'leaflet'
 
-// Fiks for markør-ikon som ofte blir borte i React Leaflet
-import icon from 'leaflet/dist/images/marker-icon.png'
-import iconShadow from 'leaflet/dist/images/marker-shadow.png'
-
-let DefaultIcon = L.icon({
-    iconUrl: icon.src,
-    shadowUrl: iconShadow.src,
+// Fiks for manglende markør-ikon i Leaflet
+const DefaultIcon = L.icon({
+    iconUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon.png',
+    shadowUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-shadow.png',
     iconSize: [25, 41],
     iconAnchor: [12, 41]
 });
 L.Marker.prototype.options.icon = DefaultIcon;
 
+// En liten hjelper for å flytte kartet når vi finner adressen
+function ChangeView({ center }: { center: [number, number] }) {
+  const map = useMap();
+  map.setView(center, 15);
+  return null;
+}
+
 export default function Map({ adresse }: { adresse: string }) {
-  // Merk: Her "jukser" vi litt. I en ekte app ville vi lagret lat/lon i databasen.
-  // Her gjør vi et live-søk hver gang kartet vises. 
-  // For produksjon bør koordinater lagres!
-  
-  // (For denne demoen bruker vi en iframe for enkelhets skyld hvis vi ikke har koordinater,
-  // men siden du ville ha React Leaflet, viser jeg oppsettet. 
-  // Uten lagrede koordinater er iframe til Google/OSM enklest).
-  
-  // LA OSS BRUKE IFRAME METODEN for garantert treff uten API-nøkler:
-  const encoded = encodeURIComponent(adresse)
+  const [coords, setCoords] = useState<[number, number] | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const finnKoordinater = async () => {
+      try {
+        // Vi søker opp adressen via OpenStreetMap (Nominatim)
+        const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(adresse)}`);
+        const data = await response.json();
+        
+        if (data && data.length > 0) {
+          setCoords([parseFloat(data[0].lat), parseFloat(data[0].lon)]);
+        } else {
+          // Fallback til Trondheim sentrum hvis vi ikke finner adressen
+          setCoords([63.4305, 10.3951]); 
+        }
+      } catch (error) {
+        console.error("Klarte ikke finne kart:", error);
+        setCoords([63.4305, 10.3951]);
+      }
+      setLoading(false);
+    };
+
+    if (adresse) finnKoordinater();
+  }, [adresse]);
+
+  if (loading) return <div style={{height:'100%', width:'100%', display:'flex', alignItems:'center', justifyContent:'center', background:'#f1f5f9', color:'#94a3b8', fontSize:'12px'}}>Laster kart...</div>;
+
   return (
-    <div className="rounded-xl overflow-hidden shadow-inner border border-gray-200">
-      <iframe 
-        width="100%" 
-        height="300" 
-        src={`https://www.openstreetmap.org/export/embed.html?bbox=10.3,63.4,10.5,63.5&layer=mapnik&marker=${encoded}`} 
-        className="w-full h-64 bg-gray-100"
-      ></iframe>
-      <div className="p-2 bg-gray-50 text-xs text-center text-gray-500">
-        Kartvisning for: {adresse}
-      </div>
+    <div style={{ height: '100%', width: '100%' }}>
+      {coords && (
+        <MapContainer center={coords} zoom={13} style={{ height: '100%', width: '100%' }}>
+          <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+          <Marker position={coords}>
+            <Popup>{adresse}</Popup>
+          </Marker>
+          <ChangeView center={coords} />
+        </MapContainer>
+      )}
     </div>
   )
 }
