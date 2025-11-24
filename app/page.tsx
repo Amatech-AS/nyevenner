@@ -35,13 +35,13 @@ export default function LandingPage() {
   }, [])
 
   return (
-    <div className="min-h-screen bg-white font-sans text-slate-900">
+    <div className="min-h-screen bg-white font-sans text-slate-900 pb-24">
       
-      {/* Header */}
-      <nav className="border-b border-slate-100 sticky top-0 bg-white z-50">
+      {/* HEADER */}
+      <nav className="border-b border-slate-100 sticky top-0 bg-white/95 backdrop-blur z-50">
         <div className="max-w-[1200px] mx-auto px-4 h-16 flex justify-between items-center">
           <h1 className="text-xl font-black tracking-tight">NyeVenner</h1>
-          <Link href="/login" className="text-sm font-bold bg-slate-100 px-4 py-2 rounded-full">
+          <Link href="/login" className="text-sm font-bold bg-black text-white px-4 py-2 rounded-full hover:opacity-80 transition-opacity">
             Logg inn
           </Link>
         </div>
@@ -49,66 +49,61 @@ export default function LandingPage() {
 
       <main className="max-w-[1200px] mx-auto px-4 py-8">
         
-        <h2 className="text-2xl font-bold mb-6 text-slate-900">Kommende aktiviteter</h2>
+        <h2 className="text-2xl font-bold mb-6 text-slate-900">Aktiviteter</h2>
 
         {loading ? (
-          <div className="flex justify-center py-10">
-            <Loader2 className="animate-spin text-slate-300" />
+          <div className="flex justify-center py-20">
+            <Loader2 className="animate-spin text-slate-300" size={32} />
           </div>
         ) : (
           /* 
-             RUTENETT:
-             Vi bruker 'grid-cols-2' på mobil (små kort)
-             og 'lg:grid-cols-4' på PC (4 i bredden).
+             HER ER ENDRINGEN:
+             grid-cols-2 = Alltid minst 2 ved siden av hverandre (også mobil!)
+             md:grid-cols-3 = 3 på nettbrett
+             lg:grid-cols-4 = 4 på PC
+             gap-4 = Litt tettere mellomrom, ser mer ut som et rutenett
           */
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
             
             {aktiviteter.map((aktivitet) => (
-              <Link href={`/aktivitet/${aktivitet.id}`} key={aktivitet.id} className="group block">
+              <Link href={`/aktivitet/${aktivitet.id}`} key={aktivitet.id} className="group flex flex-col">
                 
-                <div className="flex flex-col h-full">
-                  
-                  {/* 
-                      BILDE - TVUNGET LITEN HØYDE 
-                      h-[180px] betyr nøyaktig 180 piksler høyt.
-                      Det kan umulig dekke hele skjermen med denne koden.
-                  */}
-                  <div className="relative w-full h-[180px] rounded-lg overflow-hidden bg-gray-100 mb-3">
-                    <img 
-                      src={aktivitet.image_url || 'https://images.unsplash.com/photo-1523301343968-63214359d56b?q=80&w=600'} 
-                      alt="Aktivitet"
-                      className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-                    />
-                    {/* Dato-tag */}
-                    <div className="absolute top-2 left-2 bg-white px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wide shadow-sm">
-                      {aktivitet.dato ? aktivitet.dato.split(' ')[0] : 'Dato'}
-                    </div>
+                {/* BILDE - Fast størrelse, men bredden styres av rutenettet (som nå er delt på 2 eller 4) */}
+                <div className="relative w-full aspect-[4/3] overflow-hidden rounded-lg bg-gray-100 mb-3">
+                  <img 
+                    src={aktivitet.image_url || 'https://images.unsplash.com/photo-1543269865-cbf427effbad?q=80&w=600'} 
+                    alt={aktivitet.tittel}
+                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                  />
+                  {/* Liten datolapp */}
+                  <div className="absolute top-2 left-2 bg-white/90 backdrop-blur px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide text-slate-900 shadow-sm">
+                    {aktivitet.dato ? aktivitet.dato.split(' ')[0] : 'Dato'}
                   </div>
-
-                  {/* TEKST - Dette er viktigst */}
-                  <div>
-                    <h3 className="text-base font-bold text-slate-900 leading-tight mb-1 group-hover:text-blue-600">
-                      {aktivitet.tittel}
-                    </h3>
-                    
-                    <div className="flex items-center gap-1 text-slate-500 text-xs mb-2">
-                      <MapPin size={12} />
-                      <span className="truncate font-medium">{aktivitet.sted}</span>
-                    </div>
-
-                    <div className="flex items-center gap-3 text-xs text-slate-400 border-t border-slate-50 pt-2">
-                      <span className="flex items-center gap-1">
-                        <Calendar size={12} />
-                        {aktivitet.dato ? aktivitet.dato.split(',')[0] : ''}
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <Users size={12} />
-                        {aktivitet.max_deltakere ? `${aktivitet.max_deltakere} plasser` : 'Åpent'}
-                      </span>
-                    </div>
-                  </div>
-
                 </div>
+
+                {/* TEKST - Kompakt og tydelig under bildet */}
+                <div className="flex flex-col gap-1">
+                  <h3 className="text-sm md:text-base font-bold text-slate-900 leading-tight group-hover:underline decoration-2 underline-offset-2 line-clamp-1">
+                    {aktivitet.tittel}
+                  </h3>
+                  
+                  <div className="flex items-center gap-1 text-slate-500 text-xs">
+                    <MapPin size={12} className="shrink-0" />
+                    <span className="truncate">{aktivitet.sted}</span>
+                  </div>
+
+                  <div className="flex items-center gap-2 text-xs text-slate-400 mt-1">
+                    <span className="flex items-center gap-1 bg-slate-50 px-1.5 py-0.5 rounded">
+                      <Calendar size={10} />
+                      {aktivitet.dato ? aktivitet.dato.split(',')[0] : ''}
+                    </span>
+                    <span className="flex items-center gap-1 bg-slate-50 px-1.5 py-0.5 rounded">
+                      <Users size={10} />
+                      {aktivitet.max_deltakere ? `${aktivitet.max_deltakere}` : 'Åpent'}
+                    </span>
+                  </div>
+                </div>
+
               </Link>
             ))}
           </div>
@@ -121,7 +116,7 @@ export default function LandingPage() {
           href="/ny-aktivitet" 
           className="bg-black text-white px-5 py-3 rounded-full font-bold shadow-lg text-sm flex items-center gap-2 hover:scale-105 transition-transform"
         >
-          + Lag aktivitet
+          + Lag ny
         </Link>
       </div>
 
