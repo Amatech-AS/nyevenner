@@ -8,9 +8,21 @@ import Chat from '@/components/Chat';
 import LoginModal from '@/components/LoginModal';
 import { ArrowLeft, Calendar, MapPin, CheckCircle, XCircle, Users, Loader2, Info } from 'lucide-react';
 
-const Map = dynamic(() => import('@/components/Map'), { ssr: false, loading: () => <div style={{height:'160px', background:'#f1f5f9'}}></div> });
+// Laster kartet dynamisk
+const Map = dynamic(() => import('@/components/Map'), { 
+  ssr: false, 
+  loading: () => <div style={{height:'200px', background:'#f1f5f9', borderRadius:'16px', display:'flex', alignItems:'center', justifyContent:'center', color:'#94a3b8'}}>Laster kart...</div> 
+});
 
-type AktivitetType = { id: string; tittel: string; beskrivelse: string; dato: string; sted: string; max_deltakere: number | null; image_url: string | null }
+type AktivitetType = { 
+  id: string; 
+  tittel: string; 
+  beskrivelse: string; 
+  dato: string; 
+  sted: string; 
+  max_deltakere: number | null; 
+  image_url: string | null 
+}
 
 export default function AktivitetDetalj() {
   const supabase = createClient();
@@ -26,8 +38,10 @@ export default function AktivitetDetalj() {
     const load = async () => {
       const { data: akt } = await supabase.from('activities').select('*').eq('id', id).single();
       if (akt) setAktivitet(akt);
+
       const { count } = await supabase.from('participants').select('*', { count: 'exact', head: true }).eq('activity_id', id);
       if (count !== null) setAntall(count);
+
       const { data: { user } } = await supabase.auth.getUser();
       if (user && id) {
         const { data: sjekk } = await supabase.from('participants').select('*').eq('activity_id', id).eq('user_id', user.id).single();
@@ -50,89 +64,111 @@ export default function AktivitetDetalj() {
     }
   };
 
-  if (loading) return <div style={{height:'100vh', display:'flex', justifyContent:'center', alignItems:'center'}}><Loader2 className="animate-spin"/></div>;
-  if (!aktivitet) return <div>Fant ikke</div>;
+  if (loading) return <div style={{height:'100vh', display:'flex', justifyContent:'center', alignItems:'center', backgroundColor:'#F8FAFC'}}><Loader2 className="animate-spin"/></div>;
+  if (!aktivitet) return <div style={{padding:'40px', textAlign:'center'}}>Fant ikke aktiviteten.</div>;
 
   const erFullt = aktivitet.max_deltakere ? antall >= aktivitet.max_deltakere : false;
 
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: '#F8FAFC', padding: '40px 20px', fontFamily: 'system-ui, sans-serif' }}>
+    <div style={{ minHeight: '100vh', backgroundColor: '#F8FAFC', paddingBottom: '80px', fontFamily: 'system-ui, sans-serif' }}>
       {showModal && <LoginModal onClose={() => setShowModal(false)} />}
       
-      <div style={{ maxWidth: '1100px', margin: '0 auto' }}>
+      <div style={{ maxWidth: '1100px', margin: '0 auto', padding: '40px 20px' }}>
         
-        <button onClick={() => router.back()} style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'white', padding: '8px 16px', borderRadius: '99px', border: '1px solid #e2e8f0', marginBottom: '32px', cursor: 'pointer', fontWeight: 'bold', color: '#64748b' }}>
-          <ArrowLeft size={16} /> Tilbake
+        {/* TILBAKE KNAPP */}
+        <button onClick={() => router.back()} style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'white', padding: '10px 20px', borderRadius: '99px', border: '1px solid #e2e8f0', marginBottom: '40px', cursor: 'pointer', fontWeight: 'bold', color: '#64748b', fontSize: '14px', boxShadow: '0 2px 5px rgba(0,0,0,0.05)' }}>
+          <ArrowLeft size={16} /> Tilbake til oversikten
         </button>
 
-        {/* FLEX CONTAINER - Bytter automatisk mellom kolonne og rad */}
+        {/* HOVED LAYOUT: Flexbox som brekker om på mobil */}
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '32px', alignItems: 'flex-start' }}>
             
-            {/* VENSTRE SIDE (TEKST) */}
+            {/* VENSTRE SIDE: TEKST (Fyller mest plass) */}
             <div style={{ flex: '2', minWidth: '300px', backgroundColor: 'white', padding: '40px', borderRadius: '24px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px rgba(0,0,0,0.02)' }}>
               
-              <span style={{ background: '#eff6ff', color: '#1d4ed8', padding: '4px 12px', borderRadius: '8px', fontSize: '12px', fontWeight: '900', textTransform: 'uppercase', letterSpacing: '1px' }}>Aktivitet</span>
+              <div style={{display:'flex', gap:'12px', marginBottom:'24px'}}>
+                <span style={{ background: '#eff6ff', color: '#1d4ed8', padding: '6px 12px', borderRadius: '8px', fontSize: '12px', fontWeight: '900', textTransform: 'uppercase', letterSpacing: '1px' }}>Aktivitet</span>
+                <span style={{ background: '#f1f5f9', color: '#475569', padding: '6px 12px', borderRadius: '8px', fontSize: '12px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '1px', display:'flex', alignItems:'center', gap:'6px' }}>
+                    <Calendar size={14}/> {aktivitet.dato.split(',')[0]}
+                </span>
+              </div>
               
-              <h1 style={{ fontSize: '42px', fontWeight: '900', color: '#0f172a', marginTop: '16px', marginBottom: '24px', lineHeight: '1.1' }}>{aktivitet.tittel}</h1>
+              <h1 style={{ fontSize: '42px', fontWeight: '900', color: '#0f172a', marginBottom: '32px', lineHeight: '1.1' }}>{aktivitet.tittel}</h1>
               
-              <div style={{ display: 'flex', gap: '24px', paddingBottom: '24px', borderBottom: '1px solid #f1f5f9', marginBottom: '24px', color: '#475569', fontWeight: '600' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><Calendar size={20} color="#3b82f6"/> {aktivitet.dato}</div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><MapPin size={20} color="#ef4444"/> {aktivitet.sted}</div>
+              <div style={{ paddingBottom: '32px', borderBottom: '1px solid #f1f5f9', marginBottom: '32px', color: '#334155', fontSize: '18px', lineHeight: '1.6', whiteSpace: 'pre-wrap' }}>
+                {aktivitet.beskrivelse}
               </div>
 
-              <p style={{ fontSize: '18px', lineHeight: '1.6', color: '#334155', whiteSpace: 'pre-wrap' }}>{aktivitet.beskrivelse}</p>
-
+              {/* CHAT */}
               {erPaameldt ? (
-                <div style={{ marginTop: '40px', paddingTop: '30px', borderTop: '1px solid #f1f5f9' }}>
-                  <h3 style={{ fontWeight: 'bold', marginBottom: '16px' }}>💬 Samtale</h3>
+                <div>
+                  <h3 style={{ fontWeight: 'bold', marginBottom: '16px', fontSize:'20px', color:'#0f172a' }}>💬 Samtale for deltakere</h3>
                   <div style={{ border: '1px solid #e2e8f0', borderRadius: '16px', overflow: 'hidden' }}><Chat activityId={id as string} /></div>
                 </div>
               ) : (
-                <div style={{ marginTop: '40px', background: '#eff6ff', padding: '20px', borderRadius: '16px', color: '#1e40af', display: 'flex', gap: '12px', alignItems: 'center' }}>
-                  <Info size={20} /> <p style={{ fontSize: '14px' }}>Meld deg på for å se chatten.</p>
+                <div style={{ background: '#eff6ff', padding: '24px', borderRadius: '16px', color: '#1e40af', display: 'flex', gap: '16px', alignItems: 'center', border:'1px solid #dbeafe' }}>
+                  <div style={{background:'white', padding:'10px', borderRadius:'50%'}}><Info size={24} /></div>
+                  <div>
+                      <p style={{fontWeight:'bold'}}>Dette er en lukket chat</p>
+                      <p style={{ fontSize: '14px', opacity:0.8 }}>Meld deg på aktiviteten for å se beskjeder og snakke med de andre.</p>
+                  </div>
                 </div>
               )}
             </div>
 
-            {/* HØYRE SIDE (INFO) */}
-            <div style={{ flex: '1', minWidth: '280px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
+            {/* HØYRE SIDE: INFO BOKS + BILDE */}
+            <div style={{ flex: '1', minWidth: '300px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
               
-              {/* BILDE - LÅST RATIO */}
-              <div style={{ backgroundColor: 'white', padding: '8px', borderRadius: '24px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px rgba(0,0,0,0.05)' }}>
-                <div style={{ width: '100%', aspectRatio: '4/3', borderRadius: '16px', overflow: 'hidden', backgroundColor: '#f1f5f9' }}>
+              {/* BILDE OG STATUS */}
+              <div style={{ backgroundColor: 'white', padding: '24px', borderRadius: '24px', border: '1px solid #e2e8f0', boxShadow: '0 10px 30px -10px rgba(0,0,0,0.05)' }}>
+                
+                {/* Bildet ligger NEDE i denne boksen, 4:3 format */}
+                <div style={{ width: '100%', aspectRatio: '4/3', borderRadius: '16px', overflow: 'hidden', backgroundColor: '#f1f5f9', marginBottom:'24px', border:'1px solid #e2e8f0' }}>
                   <img src={aktivitet.image_url || ''} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                 </div>
-              </div>
 
-              {/* STATUS BOKS */}
-              <div style={{ backgroundColor: 'white', padding: '24px', borderRadius: '24px', border: '1px solid #e2e8f0', textAlign: 'center' }}>
-                <p style={{ fontSize: '12px', fontWeight: 'bold', textTransform: 'uppercase', color: '#94a3b8', marginBottom: '8px' }}>Ledige plasser</p>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', marginBottom: '24px' }}>
-                  <Users size={24} color="#0f172a" />
-                  <span style={{ fontSize: '32px', fontWeight: '900', color: '#0f172a' }}>
-                    {antall} <span style={{ fontSize: '16px', color: '#94a3b8' }}>/ {aktivitet.max_deltakere || '∞'}</span>
-                  </span>
+                <div style={{ textAlign: 'center' }}>
+                    <p style={{ fontSize: '12px', fontWeight: 'bold', textTransform: 'uppercase', color: '#94a3b8', marginBottom: '8px' }}>Status for påmelding</p>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', marginBottom: '24px' }}>
+                    <Users size={24} color="#0f172a" />
+                    <span style={{ fontSize: '32px', fontWeight: '900', color: '#0f172a' }}>
+                        {antall} <span style={{ fontSize: '16px', color: '#94a3b8' }}>/ {aktivitet.max_deltakere || '∞'}</span>
+                    </span>
+                    </div>
+
+                    <button
+                    onClick={toggle}
+                    disabled={erFullt && !erPaameldt}
+                    style={{ 
+                        width: '100%', padding: '16px', borderRadius: '12px', fontWeight: 'bold', fontSize: '16px', border: 'none', cursor: 'pointer',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+                        backgroundColor: erPaameldt ? 'white' : erFullt ? '#e2e8f0' : '#0f172a',
+                        color: erPaameldt ? '#ef4444' : erFullt ? '#94a3b8' : 'white',
+                        border: erPaameldt ? '2px solid #fee2e2' : 'none',
+                        boxShadow: erPaameldt ? 'none' : '0 4px 12px rgba(15, 23, 42, 0.2)'
+                    }}
+                    >
+                    {erPaameldt ? <><XCircle size={20}/> Meld meg av</> : erFullt ? 'Fullt' : <><CheckCircle size={20}/> Jeg blir med!</>}
+                    </button>
+                    
+                    {erPaameldt && (
+                        <div style={{ marginTop:'16px', padding:'12px', background:'#f0fdf4', borderRadius:'12px', color:'#166534', fontWeight:'bold', fontSize:'14px', display:'flex', alignItems:'center', justifyContent:'center', gap:'8px' }}>
+                            <CheckCircle size={16} /> Du er påmeldt!
+                        </div>
+                    )}
                 </div>
-
-                <button
-                  onClick={toggle}
-                  disabled={erFullt && !erPaameldt}
-                  style={{ 
-                    width: '100%', padding: '16px', borderRadius: '12px', fontWeight: 'bold', fontSize: '16px', border: 'none', cursor: 'pointer',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
-                    backgroundColor: erPaameldt ? 'white' : erFullt ? '#e2e8f0' : '#0f172a',
-                    color: erPaameldt ? '#ef4444' : erFullt ? '#94a3b8' : 'white',
-                    border: erPaameldt ? '2px solid #fecaca' : 'none'
-                  }}
-                >
-                  {erPaameldt ? 'Meld meg av' : erFullt ? 'Fullt' : 'Jeg blir med!'}
-                </button>
               </div>
 
-              {/* KART */}
-              <div style={{ backgroundColor: 'white', padding: '16px', borderRadius: '24px', border: '1px solid #e2e8f0' }}>
-                <p style={{ fontWeight: 'bold', marginBottom: '12px', display: 'flex', gap: '8px' }}><MapPin size={16}/> Kart</p>
-                <div style={{ height: '150px', borderRadius: '12px', overflow: 'hidden' }}><Map adresse={aktivitet.sted} /></div>
+              {/* KART BOKS */}
+              <div style={{ backgroundColor: 'white', padding: '24px', borderRadius: '24px', border: '1px solid #e2e8f0' }}>
+                <div style={{ fontWeight: 'bold', marginBottom: '16px', display: 'flex', gap: '8px', alignItems:'center', color:'#334155' }}>
+                    <div style={{background:'#eff6ff', padding:'8px', borderRadius:'50%'}}><MapPin size={16} color="#2563eb"/></div>
+                    Hvor skal vi?
+                </div>
+                <div style={{ height: '200px', borderRadius: '16px', overflow: 'hidden', border:'1px solid #e2e8f0' }}>
+                    <Map adresse={aktivitet.sted} />
+                </div>
+                <p style={{ marginTop:'16px', fontSize:'14px', color:'#475569', textAlign:'center', fontWeight:'500' }}>📍 {aktivitet.sted}</p>
               </div>
 
             </div>

@@ -2,10 +2,10 @@
 import { useState, useEffect } from 'react';
 import { createClient } from '@/utils/supabase/client';
 import Link from 'next/link';
-import { MapPin, Calendar, Search, Users, ArrowRight, Info, CheckCircle, Loader2, Smile, Heart, HelpCircle } from 'lucide-react';
+import { MapPin, Calendar, Search, Users, ArrowRight, Info, CheckCircle, Loader2, Smile, Heart, Trash2, Edit2 } from 'lucide-react';
 import LoginModal from '@/components/LoginModal';
 
-type Aktivitet = { id: string; tittel: string; beskrivelse: string; dato: string; sted: string; max_deltakere: number | null; image_url: string | null; }
+type Aktivitet = { id: string; tittel: string; beskrivelse: string; dato: string; sted: string; max_deltakere: number | null; image_url: string | null; creator_id: string; }
 
 // --- SMART BILDEVELGER ---
 const imageCollections = {
@@ -23,7 +23,6 @@ const getSmartImage = (tittel: string, id: string) => {
   else if (t.includes('tur') || t.includes('gå') || t.includes('marka')) collection = imageCollections.tur;
   else if (t.includes('mat') || t.includes('kaffe') || t.includes('vaffel') || t.includes('middag')) collection = imageCollections.mat;
   else if (t.includes('strikk') || t.includes('bok') || t.includes('quiz') || t.includes('kino')) collection = imageCollections.hobby;
-  
   const idSum = id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
   const imageId = collection[idSum % collection.length];
   return `https://images.unsplash.com/${imageId}?q=80&w=400&auto=format&fit=crop`;
@@ -31,58 +30,115 @@ const getSmartImage = (tittel: string, id: string) => {
 
 export default function LandingPage() {
   const supabase = createClient();
-  const [aktiviteter, setAktiviteter] = useState<Aktivitet[]>([]);
-  const [mineAktiviteter, setMineAktiviteter] = useState<Aktivitet[]>([]);
+  const [aktiviteter, setAktiviteter] = useState<any[]>([]);
+  const [mineAktiviteter, setMineAktiviteter] = useState<any[]>([]);
   const [soketekst, setSoketekst] = useState('');
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<any>(null);
   const [showLoginModal, setShowLoginModal] = useState(false);
 
   useEffect(() => {
-    async function hentData() {
-      const { data: { user } } = await supabase.auth.getUser();
-      setUser(user);
-      const { data: alle } = await supabase.from('activities').select('*').order('created_at', { ascending: false }).limit(20);
-      if (alle) setAktiviteter(alle);
-      if (user) {
-        const { data: paameldinger } = await supabase.from('participants').select('activity_id').eq('user_id', user.id);
-        if (paameldinger && paameldinger.length > 0) {
-          const mineIder = paameldinger.map(p => p.activity_id);
-          const mine = alle?.filter(a => mineIder.includes(a.id)) || [];
-          setMineAktiviteter(mine);
-        }
-      }
-      setLoading(false);
-    }
-    hentData();
+    fetchData();
   }, []);
 
-  const visAktiviteter = soketekst.trim() ? aktiviteter.filter(a => a.tittel.toLowerCase().includes(soketekst.toLowerCase()) || a.sted.toLowerCase().includes(soketekst.toLowerCase())) : aktiviteter;
+  const fetchData = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    setUser(user);
 
-  const AktivitetFlis = ({ aktivitet, erMin = false }: { aktivitet: Aktivitet, erMin?: boolean }) => {
-    const imageUrl = getSmartImage(aktivitet.tittel, aktivitet.id);
+    // Hent aktiviteter
+    const { data: alle } = await supabase
+      .from('activities')
+      .select('*, participants(count)')
+      .order('created_at', { ascending: false })
+      .limit(20);
     
+    if (alle) {
+      const formatted = alle.map(a => ({
+        ...a,
+        deltakere_count: a.participants ? a.participants[0]?.count : 0
+      }));
+      setAktiviteter(formatted);
+
+      if (user) {
+        const { data: paameldinger } = await supabase.from('participants').select('activity_id').eq('user_id', user.id);
+        if (paameldinger) {
+          const mineIder = paameldinger.map(p => p.activity_id);
+          setMineAktiviteter(formatted.filter(a => mineIder.includes(a.id)));
+        }
+      }
+    }
+    setLoading(false);
+  };
+
+  const slettAktivitet = async (id: string) => {
+    if (confirm('Er du sikker på at du vil slette denne aktiviteten?')) {
+      await supabase.from('activities').delete().eq('id', id);
+      fetchData(); 
+    }
+  };
+
+  // HER ER LINJEN SOM MANGLET SIST:
+  const visAktiviteter = soketekst.trim() 
+    ? aktiviteter.filter(a => a.tittel.toLowerCase().includes(soketekst.toLowerCase()) || a.sted.toLowerCase().includes(soketekst.toLowerCase()))
+    : aktiviteter;
+
+  const AktivitetFlis = ({ aktivitet, erMin = false }: { aktivitet: any, erMin?: boolean }) => {
+    const imageUrl = getSmartImage(aktivitet.tittel, aktivitet.id);
+    const erFullt = aktivitet.max_deltakere && aktivitet.deltakere_count >= aktivitet.max_deltakere;
+    const erEier = user && user.id === aktivitet.creator_id;
+
     return (
-      <Link href={`/aktivitet/${aktivitet.id}`} style={{ textDecoration: 'none' }}>
-        <div style={{
-          backgroundColor: 'white', borderRadius: '16px', border: erMin ? '2px solid #10B981' : '1px solid #E2E8F0', boxShadow: '0 4px 6px rgba(0,0,0,0.05)',
-          overflow: 'hidden', height: '100%', display: 'flex', flexDirection: 'column', transition: 'transform 0.2s',
-        }} onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-5px)'} onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}>
-          <div style={{ height: '140px', width: '100%', position: 'relative', backgroundColor: '#F1F5F9' }}>
-             <img src={imageUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-             <div style={{ position: 'absolute', top: '8px', left: '8px', background: 'rgba(255,255,255,0.9)', padding: '4px 8px', borderRadius: '6px', fontSize: '10px', fontWeight: 'bold', textTransform: 'uppercase', color: '#333' }}>{aktivitet.dato.split(' ')[0]}</div>
-             {erMin && <div style={{ position: 'absolute', top: '8px', right: '8px', background: '#10B981', color:'white', padding: '4px 8px', borderRadius: '6px', fontSize: '10px', fontWeight: 'bold' }}>Påmeldt</div>}
-          </div>
-          <div style={{ padding: '16px', flex: 1, display: 'flex', flexDirection: 'column' }}>
-            <h3 style={{ fontSize: '18px', fontWeight: '900', color: '#1e293b', marginBottom: '4px', lineHeight: '1.2' }}>{aktivitet.tittel}</h3>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '12px', color: '#64748b', marginBottom: '16px', fontWeight: '600' }}><MapPin size={12} /> <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{aktivitet.sted}</span></div>
-            <div style={{ marginTop: 'auto', paddingTop: '12px', borderTop: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '12px', color: '#94a3b8', fontWeight: '600' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><Users size={12} /> {aktivitet.max_deltakere || '∞'}</div>
-              <ArrowRight size={16} color="#cbd5e1" />
+      <div className="group h-full relative">
+        <Link href={`/aktivitet/${aktivitet.id}`} style={{ textDecoration: 'none' }} className="block h-full">
+          <div style={{
+            backgroundColor: 'white', borderRadius: '16px', border: erMin ? '2px solid #10B981' : '1px solid #E2E8F0', boxShadow: '0 4px 6px rgba(0,0,0,0.05)',
+            overflow: 'hidden', height: '100%', display: 'flex', flexDirection: 'column', transition: 'transform 0.2s',
+          }} onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-5px)'} onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}>
+            
+            <div style={{ height: '160px', width: '100%', position: 'relative', backgroundColor: '#F1F5F9' }}>
+               <img src={imageUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: erFullt && !erMin ? 0.5 : 1 }} />
+               
+               <div style={{ position: 'absolute', top: '8px', left: '8px', right: '8px', display:'flex', justifyContent:'space-between' }}>
+                 <div style={{ background: 'rgba(0,0,0,0.7)', backdropFilter:'blur(4px)', padding: '4px 8px', borderRadius: '6px', color: 'white', fontSize: '11px', fontWeight: 'bold', display:'flex', alignItems:'center', gap:'4px' }}>
+                    <Calendar size={12}/> {aktivitet.dato.split(',')[0]}
+                 </div>
+               </div>
+
+               {erFullt && !erMin && (
+                 <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(255,255,255,0.3)' }}>
+                    <div style={{ background: '#ef4444', color: 'white', padding: '6px 12px', borderRadius: '8px', fontWeight: '900', transform: 'rotate(-5deg)', boxShadow: '0 4px 10px rgba(0,0,0,0.2)' }}>FULLT</div>
+                 </div>
+               )}
+               
+               {erMin && <div style={{ position: 'absolute', bottom: '8px', right: '8px', background: '#10B981', color:'white', padding: '4px 8px', borderRadius: '6px', fontSize: '10px', fontWeight: 'bold', display:'flex', alignItems:'center', gap:'4px' }}><CheckCircle size={12}/> Påmeldt</div>}
+            </div>
+
+            <div style={{ padding: '16px', flex: 1, display: 'flex', flexDirection: 'column' }}>
+              <h3 style={{ fontSize: '18px', fontWeight: '900', color: '#1e293b', marginBottom: '4px', lineHeight: '1.2' }}>{aktivitet.tittel}</h3>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '12px', color: '#64748b', marginBottom: '16px', fontWeight: '600' }}><MapPin size={12} /> <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{aktivitet.sted}</span></div>
+              
+              <div style={{ marginTop: 'auto', paddingTop: '12px', borderTop: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '12px', color: '#475569', fontWeight: '600' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                   <Users size={12} className={erFullt ? 'text-red-500' : 'text-blue-500'} /> 
+                   <span>Antall: {aktivitet.deltakere_count} {aktivitet.max_deltakere ? `/ ${aktivitet.max_deltakere}` : ''}</span>
+                </div>
+                <ArrowRight size={16} color="#cbd5e1" />
+              </div>
             </div>
           </div>
-        </div>
-      </Link>
+        </Link>
+
+        {erEier && (
+          <div style={{ position: 'absolute', top: '8px', right: '8px', display: 'flex', gap: '4px', zIndex: 20 }}>
+            <Link href={`/aktivitet/${aktivitet.id}/rediger`} onClick={(e) => e.stopPropagation()} style={{ background: 'white', padding: '6px', borderRadius: '6px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)', color: '#334155' }}>
+              <Edit2 size={14}/>
+            </Link>
+            <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); slettAktivitet(aktivitet.id); }} style={{ background: 'white', padding: '6px', borderRadius: '6px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)', color: '#ef4444', border: 'none', cursor: 'pointer' }}>
+              <Trash2 size={14}/>
+            </button>
+          </div>
+        )}
+      </div>
     );
   };
 
@@ -90,7 +146,6 @@ export default function LandingPage() {
     <main style={{ minHeight: '100vh', backgroundColor: '#F8FAFC', paddingBottom: '80px', fontFamily: 'system-ui, sans-serif' }}>
       {showLoginModal && <LoginModal onClose={() => setShowLoginModal(false)} />}
 
-      {/* HEADER */}
       <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '24px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '40px' }}>
            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -103,12 +158,10 @@ export default function LandingPage() {
            {user ? (
              <Link href="/minside" style={{ fontSize: '14px', fontWeight: 'bold', color: '#475569', background: 'white', padding: '10px 20px', borderRadius: '99px', border: '1px solid #e2e8f0', textDecoration: 'none', boxShadow: '0 2px 5px rgba(0,0,0,0.05)' }}>Min Side</Link>
            ) : (
-             // ENDRING: Går nå direkte til /login via Link, i stedet for å åpne modalen
-             <Link href="/login" style={{ background: '#0f172a', color: 'white', padding: '12px 28px', borderRadius: '99px', fontWeight: 'bold', fontSize: '14px', textDecoration: 'none', boxShadow: '0 4px 12px rgba(15, 23, 42, 0.2)' }}>Logg inn</Link>
+             <button onClick={() => setShowLoginModal(true)} style={{ background: '#0f172a', color: 'white', padding: '10px 24px', borderRadius: '99px', fontWeight: 'bold', fontSize: '14px', border: 'none', cursor: 'pointer', boxShadow: '0 4px 12px rgba(15, 23, 42, 0.2)' }}>Logg inn</button>
            )}
         </div>
 
-        {/* INTRO */}
         <div style={{ background: 'white', border: '1px solid #e2e8f0', borderRadius: '24px', padding: '32px', marginBottom: '48px', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', boxShadow: '0 10px 20px -5px rgba(0,0,0,0.03)' }}>
             <h2 style={{ fontSize: '28px', fontWeight: '900', color: '#0f172a', marginBottom: '16px' }}>En enkel måte å bli kjent med nye folk</h2>
             <p style={{ fontSize: '18px', color: '#475569', maxWidth: '600px', lineHeight: '1.6', marginBottom: '24px' }}>
@@ -122,7 +175,6 @@ export default function LandingPage() {
             </div>
         </div>
 
-        {/* SØK */}
         <div style={{ maxWidth: '500px', margin: '0 auto 48px auto', position: 'relative' }}>
            <input placeholder="Søk etter aktivitet eller sted..." value={soketekst} onChange={e=>setSoketekst(e.target.value)} style={{ width: '100%', padding: '18px 18px 18px 52px', borderRadius: '16px', border: '2px solid #e2e8f0', fontSize: '16px', fontWeight: '600', outline: 'none', boxShadow: '0 4px 6px rgba(0,0,0,0.02)' }} />
            <div style={{ position: 'absolute', left: '20px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }}><Search size={20} /></div>

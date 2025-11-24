@@ -1,175 +1,117 @@
-'use client'
+'use client';
 
-import { useEffect, useState, useRef } from 'react'
-import { createClient } from '@/utils/supabase/client'
+import { useEffect, useState, useRef } from 'react';
+import { createClient } from '@/utils/supabase/client';
+import { Send, Mic, Square, User } from 'lucide-react';
 
 type Message = {
-  id: string
-  content: string
-  audio_url: string | null
-  user_id: string
-  full_name: string
-  created_at: string
+  id: string;
+  content: string;
+  audio_url: string | null;
+  user_id: string;
+  full_name: string;
+  created_at: string;
 }
 
 export default function Chat({ activityId }: { activityId: string }) {
-  const supabase = createClient()
-  const [messages, setMessages] = useState<Message[]>([])
-  const [newMessage, setNewMessage] = useState('')
-  const [currentUser, setCurrentUser] = useState<string | null>(null)
-  const [isRecording, setIsRecording] = useState(false)
+  const supabase = createClient();
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [newMessage, setNewMessage] = useState('');
+  const [currentUser, setCurrentUser] = useState<string | null>(null);
+  const [isRecording, setIsRecording] = useState(false);
   
-  const bunnRef = useRef<HTMLDivElement>(null)
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null)
-  const audioChunksRef = useRef<Blob[]>([])
-  const [mimeType, setMimeType] = useState<string>('audio/webm') // Standard
+  const bunnRef = useRef<HTMLDivElement>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
-      setCurrentUser(data.user?.id || null)
-    })
+      setCurrentUser(data.user?.id || null);
+    });
 
     const fetchMessages = async () => {
       const { data } = await supabase
         .from('messages')
         .select('*')
         .eq('activity_id', activityId)
-        .order('created_at', { ascending: true })
+        .order('created_at', { ascending: true });
       
-      if (data) setMessages(data)
-    }
-    fetchMessages()
+      if (data) setMessages(data);
+    };
+    fetchMessages();
 
     const channel = supabase
       .channel('chat_room')
-      .on('postgres_changes', {
-        event: 'INSERT',
-        schema: 'public',
-        table: 'messages',
-        filter: `activity_id=eq.${activityId}`
-      }, (payload) => {
-        setMessages((current) => [...current, payload.new as Message])
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages', filter: `activity_id=eq.${activityId}` }, (payload) => {
+        setMessages((current) => [...current, payload.new as Message]);
       })
-      .subscribe()
+      .subscribe();
 
-    return () => { supabase.removeChannel(channel) }
-  }, [activityId])
+    return () => { supabase.removeChannel(channel); };
+  }, [activityId]);
 
   useEffect(() => {
-    bunnRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [messages])
+    bunnRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
 
-  // --- FUNKSJONER FOR LYDOPPTAK ---
-
-  // Hjelpefunksjon for å finne riktig format for mobilen
-  const getSupportedMimeType = () => {
-    const types = [
-      'audio/mp4',
-      'audio/webm;codecs=opus',
-      'audio/webm',
-      'audio/ogg'
-    ]
-    for (const type of types) {
-      if (MediaRecorder.isTypeSupported(type)) {
-        return type
-      }
-    }
-    return '' // Fallback
-  }
-
+  // --- LYD LOGIKK ---
   const startRecording = async () => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
-      
-      const supportedType = getSupportedMimeType()
-      setMimeType(supportedType) // Husk hvilken type vi valgte
-
-      const mediaRecorder = new MediaRecorder(stream, { mimeType: supportedType })
-      mediaRecorderRef.current = mediaRecorder
-      audioChunksRef.current = []
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mediaRecorder = new MediaRecorder(stream);
+      mediaRecorderRef.current = mediaRecorder;
+      audioChunksRef.current = [];
 
       mediaRecorder.ondataavailable = (event) => {
-        if (event.data.size > 0) {
-          audioChunksRef.current.push(event.data)
-        }
-      }
+        if (event.data.size > 0) audioChunksRef.current.push(event.data);
+      };
 
       mediaRecorder.onstop = async () => {
-        // Bruk samme type når vi lager filen som da vi tok opp
-        const audioBlob = new Blob(audioChunksRef.current, { type: supportedType })
-        await sendAudioMessage(audioBlob, supportedType)
-        
-        stream.getTracks().forEach(track => track.stop())
-      }
+        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        await sendAudioMessage(audioBlob);
+        stream.getTracks().forEach(track => track.stop());
+      };
 
-      mediaRecorder.start()
-      setIsRecording(true)
+      mediaRecorder.start();
+      setIsRecording(true);
     } catch (err) {
-      alert('Kunne ikke starte mikrofonen. Sjekk innstillinger.')
-      console.error(err)
+      alert('Kunne ikke starte mikrofonen.');
     }
-  }
+  };
 
   const stopRecording = () => {
     if (mediaRecorderRef.current && isRecording) {
-      mediaRecorderRef.current.stop()
-      setIsRecording(false)
+      mediaRecorderRef.current.stop();
+      setIsRecording(false);
     }
-  }
+  };
 
-  const sendAudioMessage = async (audioBlob: Blob, type: string) => {
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return
+  const sendAudioMessage = async (audioBlob: Blob) => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
 
-    // Bestem filendelse basert på typen
-    const extension = type.includes('mp4') ? 'mp4' : 'webm'
-    const fileName = `${Date.now()}-tale.${extension}`
+    const fileName = `${Date.now()}-tale.webm`;
+    const { error: uploadError } = await supabase.storage.from('chat-audio').upload(fileName, audioBlob);
+    if (uploadError) return alert('Feil ved opplasting');
 
-    // 1. Last opp filen til Supabase Storage
-    const { error: uploadError } = await supabase.storage
-      .from('chat-audio')
-      .upload(fileName, audioBlob, {
-        contentType: type // Viktig for at mobilen skal skjønne formatet
-      })
-
-    if (uploadError) {
-      alert('Kunne ikke laste opp lyd: ' + uploadError.message)
-      return
-    }
-
-    // 2. Få tak i den offentlige linken
-    const { data: { publicUrl } } = supabase.storage
-      .from('chat-audio')
-      .getPublicUrl(fileName)
-
-    // 3. Lagre meldingen i databasen
-    const { data: profil } = await supabase
-      .from('profiles')
-      .select('full_name')
-      .eq('id', user.id)
-      .single()
+    const { data: { publicUrl } } = supabase.storage.from('chat-audio').getPublicUrl(fileName);
+    const { data: profil } = await supabase.from('profiles').select('full_name').eq('id', user.id).single();
 
     await supabase.from('messages').insert({
-      content: '🎤 Sendte en talemelding',
+      content: '🎤 Talemelding',
       audio_url: publicUrl,
       activity_id: activityId,
       user_id: user.id,
       full_name: profil?.full_name || 'Ukjent'
-    })
-  }
-
-  // --- VANLIG TEKSTMELDING ---
+    });
+  };
 
   const sendMessage = async () => {
-    if (!newMessage.trim()) return
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return
+    if (!newMessage.trim()) return;
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
 
-    const { data: profil } = await supabase
-      .from('profiles')
-      .select('full_name')
-      .eq('id', user.id)
-      .single()
+    const { data: profil } = await supabase.from('profiles').select('full_name').eq('id', user.id).single();
 
     await supabase.from('messages').insert({
       content: newMessage,
@@ -177,80 +119,123 @@ export default function Chat({ activityId }: { activityId: string }) {
       user_id: user.id,
       full_name: profil?.full_name || 'Ukjent',
       audio_url: null
-    })
-    setNewMessage('')
-  }
+    });
+    setNewMessage('');
+  };
+
+  const formatTime = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  };
 
   return (
-    <div className="mt-8 bg-gray-50 border-2 border-gray-200 rounded-xl overflow-hidden flex flex-col h-[600px]">
+    <div style={{ display: 'flex', flexDirection: 'column', height: '500px', backgroundColor: '#ffffff' }}>
       
-      <div className="bg-blue-100 p-4 border-b border-blue-200">
-        <h3 className="font-bold text-blue-900 text-lg">💬 Gruppe-chat</h3>
-        <p className="text-sm text-blue-700">Her kan dere snakke sammen</p>
+      {/* HEADER */}
+      <div style={{ padding: '16px 24px', borderBottom: '1px solid #f1f5f9', display: 'flex', alignItems: 'center', gap: '10px', backgroundColor: 'white' }}>
+        <div style={{ width: '8px', height: '8px', backgroundColor: '#10b981', borderRadius: '50%' }}></div>
+        <h3 style={{ fontSize: '14px', fontWeight: 'bold', color: '#0f172a', margin: 0 }}>Deltaker-chat</h3>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+      {/* MELDINGER */}
+      <div style={{ flex: 1, overflowY: 'auto', padding: '24px', display: 'flex', flexDirection: 'column', gap: '20px', backgroundColor: '#f8fafc' }}>
         {messages.length === 0 && (
-          <p className="text-center text-gray-400 mt-10">Ingen meldinger enda.</p>
+          <p style={{ textAlign: 'center', color: '#94a3b8', fontSize: '14px', marginTop: '20px' }}>Ingen meldinger enda. Si hei! 👋</p>
         )}
         
         {messages.map((msg) => {
-          const isMe = msg.user_id === currentUser
+          const isMe = msg.user_id === currentUser;
           return (
-            <div key={msg.id} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
-              <div 
-                className={`max-w-[85%] p-4 rounded-xl text-lg shadow-sm ${
-                  isMe 
-                    ? 'bg-blue-600 text-white rounded-br-none' 
-                    : 'bg-white border border-gray-200 text-gray-800 rounded-bl-none'
-                }`}
-              >
-                {!isMe && <p className="text-xs font-bold text-gray-500 mb-1">{msg.full_name}</p>}
-                
+            <div key={msg.id} style={{ display: 'flex', flexDirection: 'column', alignItems: isMe ? 'flex-end' : 'flex-start' }}>
+              
+              {/* Navn (hvis det ikke er meg) */}
+              {!isMe && (
+                <span style={{ fontSize: '11px', fontWeight: 'bold', color: '#64748b', marginBottom: '4px', marginLeft: '12px' }}>
+                  {msg.full_name}
+                </span>
+              )}
+
+              {/* Boblen */}
+              <div style={{ 
+                maxWidth: '80%', 
+                padding: '12px 16px', 
+                borderRadius: isMe ? '20px 20px 4px 20px' : '20px 20px 20px 4px',
+                backgroundColor: isMe ? '#2563eb' : 'white',
+                color: isMe ? 'white' : '#1e293b',
+                boxShadow: isMe ? '0 4px 6px -1px rgba(37, 99, 235, 0.2)' : '0 2px 4px rgba(0,0,0,0.05)',
+                border: isMe ? 'none' : '1px solid #e2e8f0',
+                fontSize: '15px',
+                lineHeight: '1.5'
+              }}>
                 {msg.audio_url ? (
-                  <div className="flex flex-col gap-2">
-                     <p className="text-sm opacity-80">🎤 Talemelding</p>
-                     <audio controls src={msg.audio_url} className="h-10 w-60 md:w-80" />
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                     <span style={{ fontSize: '20px' }}>🎤</span>
+                     <audio controls src={msg.audio_url} style={{ height: '32px', maxWidth: '200px' }} />
                   </div>
                 ) : (
-                  <p>{msg.content}</p>
+                  <p style={{ margin: 0 }}>{msg.content}</p>
                 )}
               </div>
+
+              {/* Tidspunkt */}
+              <span style={{ fontSize: '10px', color: '#94a3b8', marginTop: '4px', margin: '0 4px' }}>
+                {formatTime(msg.created_at)}
+              </span>
             </div>
           )
         })}
         <div ref={bunnRef} />
       </div>
 
-      <div className="p-4 bg-white border-t border-gray-200 flex items-center gap-3">
+      {/* INPUT FELT */}
+      <div style={{ padding: '16px', backgroundColor: 'white', borderTop: '1px solid #f1f5f9', display: 'flex', gap: '12px', alignItems: 'center' }}>
+        
+        {/* Mikrofon Knapp */}
         <button
           onClick={isRecording ? stopRecording : startRecording}
-          className={`p-4 rounded-full transition-all flex items-center justify-center shadow-md ${
-            isRecording 
-              ? 'bg-red-500 text-white animate-pulse scale-110' 
-              : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-          }`}
           title={isRecording ? "Stopp opptak" : "Start opptak"}
+          style={{ 
+            width: '44px', height: '44px', borderRadius: '50%', border: 'none', cursor: 'pointer',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+            backgroundColor: isRecording ? '#fee2e2' : '#f1f5f9',
+            color: isRecording ? '#ef4444' : '#64748b',
+            transition: 'all 0.2s'
+          }}
         >
-          {isRecording ? <span className="text-2xl">⏹️</span> : <span className="text-2xl">🎤</span>}
+          {isRecording ? <Square size={20} fill="#ef4444" /> : <Mic size={20} />}
         </button>
 
+        {/* Tekstfelt */}
         <input
           type="text"
           value={newMessage}
           onChange={(e) => setNewMessage(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && sendMessage()}
-          placeholder={isRecording ? "Tar opp..." : "Skriv en melding..."}
+          placeholder={isRecording ? "Tar opp lyd..." : "Skriv en melding..."}
           disabled={isRecording}
-          className="flex-1 p-4 border-2 border-gray-300 rounded-xl text-lg focus:border-blue-500 outline-none disabled:bg-gray-100"
+          style={{ 
+            flex: 1, padding: '12px 16px', borderRadius: '99px', border: '1px solid #e2e8f0', 
+            fontSize: '15px', outline: 'none', backgroundColor: isRecording ? '#f8fafc' : 'white',
+            transition: 'border-color 0.2s'
+          }}
+          onFocus={(e) => e.target.style.borderColor = '#3b82f6'}
+          onBlur={(e) => e.target.style.borderColor = '#e2e8f0'}
         />
         
+        {/* Send Knapp */}
         <button 
           onClick={sendMessage}
-          disabled={isRecording}
-          className="bg-blue-600 text-white px-6 py-4 rounded-xl font-bold text-lg hover:bg-blue-700 disabled:opacity-50"
+          disabled={isRecording || !newMessage.trim()}
+          style={{ 
+            width: '44px', height: '44px', borderRadius: '50%', border: 'none', cursor: 'pointer',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+            backgroundColor: newMessage.trim() ? '#2563eb' : '#f1f5f9',
+            color: newMessage.trim() ? 'white' : '#cbd5e1',
+            transition: 'all 0.2s',
+            pointerEvents: newMessage.trim() ? 'auto' : 'none'
+          }}
         >
-          Send
+          <Send size={20} />
         </button>
       </div>
     </div>

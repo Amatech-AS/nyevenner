@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { createClient } from '@/utils/supabase/client';
 import { useRouter } from 'next/navigation';
 import * as chrono from 'chrono-node';
-import { MapPin, Calendar, Type, FileText, Users, Loader2, ArrowLeft } from 'lucide-react';
+import { MapPin, Calendar, Type, FileText, Users, Loader2, ArrowLeft, Clock, Info } from 'lucide-react';
 
 export default function NyAktivitetPage() {
   const supabase = createClient();
@@ -12,8 +12,11 @@ export default function NyAktivitetPage() {
   
   const [tittel, setTittel] = useState('');
   const [beskrivelse, setBeskrivelse] = useState('');
-  const [datoInput, setDatoInput] = useState('');
-  const [tolketDato, setTolketDato] = useState('');
+  
+  // SPLIT DATO OG TID
+  const [datoVal, setDatoVal] = useState('');
+  const [tidVal, setTidVal] = useState('');
+  
   const [stedInput, setStedInput] = useState('');
   const [ingenBegrensning, setIngenBegrensning] = useState(false);
   const [antallPlasser, setAntallPlasser] = useState('4');
@@ -29,20 +32,22 @@ export default function NyAktivitetPage() {
     sjekk();
   }, []);
 
-  useEffect(() => {
-    const results = chrono.parse(datoInput, new Date(), { forwardDate: true });
-    if (results.length > 0) {
-      setTolketDato(results[0].start.date().toLocaleDateString('no-NO', { weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' }));
-    }
-  }, [datoInput]);
-
   const lagreAktivitet = async () => {
-    if (!tittel || !tolketDato || !stedInput) return alert('Mangler info');
+    if (!tittel || !datoVal || !tidVal || !stedInput) return alert('Du må fylle ut tittel, dato, klokkeslett og sted.');
     setLoading(true);
+
+    // Formater dato pent: "Mandag 12. mai kl 14:00"
+    const d = new Date(datoVal);
+    const datoStr = d.toLocaleDateString('no-NO', { weekday: 'long', day: 'numeric', month: 'long' });
+    const finalString = `${datoStr.charAt(0).toUpperCase() + datoStr.slice(1)} kl ${tidVal}`;
+
     const { data: { user } } = await supabase.auth.getUser();
     if (user) {
       const { error } = await supabase.from('activities').insert({
-        tittel, beskrivelse, dato: tolketDato, sted: stedInput, 
+        tittel, 
+        beskrivelse, 
+        dato: finalString, // Vi lagrer den sammensatte strengen
+        sted: stedInput, 
         max_deltakere: ingenBegrensning ? null : parseInt(antallPlasser), 
         creator_id: user.id
       });
@@ -52,60 +57,71 @@ export default function NyAktivitetPage() {
     setLoading(false);
   };
 
-  if (checkingAuth) return <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Loader2 className="animate-spin"/></div>;
+  if (checkingAuth) return <div className="min-h-screen flex items-center justify-center bg-slate-50"><Loader2 className="animate-spin text-slate-400"/></div>;
 
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: '#F8FAFC', padding: '40px 20px', display: 'flex', justifyContent: 'center', fontFamily: 'system-ui, sans-serif' }}>
-      <div style={{ width: '100%', maxWidth: '600px', backgroundColor: 'white', padding: '40px', borderRadius: '24px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)', border: '1px solid #e2e8f0' }}>
-        
-        <button onClick={() => router.back()} style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'none', border: 'none', fontWeight: 'bold', color: '#64748b', marginBottom: '24px', cursor: 'pointer' }}>
-          <ArrowLeft size={16} /> Avbryt
+    <div className="min-h-screen bg-slate-50 p-4 flex justify-center items-start pt-10 font-sans">
+      <div className="bg-white p-8 rounded-2xl shadow-sm border border-slate-200 w-full max-w-2xl">
+        <button onClick={() => router.back()} className="flex items-center gap-2 text-slate-400 hover:text-slate-600 mb-6 font-bold text-xs uppercase tracking-wider">
+          <ArrowLeft size={14} /> Avbryt
         </button>
+        <h1 className="text-3xl font-black text-slate-900 mb-8">Ny Aktivitet</h1>
         
-        <h1 style={{ fontSize: '32px', fontWeight: '900', color: '#0f172a', marginBottom: '32px' }}>Ny Aktivitet</h1>
-        
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+        <div className="space-y-8">
           <div>
-            <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '8px', color: '#334155' }}>Hva skal skje?</label>
-            <input value={tittel} onChange={e => setTittel(e.target.value)} style={{ width: '100%', padding: '16px', borderRadius: '12px', border: '1px solid #cbd5e1', fontSize: '16px' }} placeholder="Navn på aktivitet" />
+            <label className="font-bold text-slate-700 mb-2 block flex gap-2 text-sm uppercase tracking-wide"><Type size={16}/> Hva skal dere?</label>
+            <input value={tittel} onChange={e => setTittel(e.target.value)} className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl font-bold text-lg outline-none focus:border-blue-400" placeholder="Navn på aktivitet" />
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+          {/* DATO OG TID SPLIT */}
+          <div className="grid md:grid-cols-2 gap-4">
             <div>
-              <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '8px', color: '#334155' }}>Når?</label>
-              <input value={datoInput} onChange={e => setDatoInput(e.target.value)} style={{ width: '100%', padding: '16px', borderRadius: '12px', border: '1px solid #cbd5e1', fontSize: '16px' }} placeholder="F.eks. Lørdag kl 12" />
-              {tolketDato && <p style={{ color: '#16a34a', fontSize: '12px', fontWeight: 'bold', marginTop: '4px' }}>✅ {tolketDato}</p>}
+              <label className="font-bold text-slate-700 mb-2 block flex gap-2 text-sm uppercase tracking-wide"><Calendar size={16}/> Dato</label>
+              <input type="date" value={datoVal} onChange={e => setDatoVal(e.target.value)} className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-400 font-medium" />
             </div>
             <div>
-              <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '8px', color: '#334155' }}>Hvor?</label>
-              <input value={stedInput} onChange={e => setStedInput(e.target.value)} style={{ width: '100%', padding: '16px', borderRadius: '12px', border: '1px solid #cbd5e1', fontSize: '16px' }} placeholder="Møtested" />
+              <label className="font-bold text-slate-700 mb-2 block flex gap-2 text-sm uppercase tracking-wide"><Clock size={16}/> Klokkeslett</label>
+              <input type="time" value={tidVal} onChange={e => setTidVal(e.target.value)} className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-400 font-medium" />
             </div>
           </div>
 
-          <div style={{ padding: '20px', backgroundColor: '#f1f5f9', borderRadius: '12px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '12px' }}>
-              <span style={{ fontWeight: 'bold', color: '#334155' }}>Antall plasser:</span>
+          <div>
+            <label className="font-bold text-slate-700 mb-2 block flex gap-2 text-sm uppercase tracking-wide"><MapPin size={16}/> Hvor?</label>
+            <input value={stedInput} onChange={e => setStedInput(e.target.value)} className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-400" placeholder="Møtested (f.eks. Adresse eller 'Ved kiosken')" />
+          </div>
+
+          {/* ANTALL PLASSER MED FORKLARING */}
+          <div className="p-5 bg-blue-50 rounded-xl border border-blue-100">
+            <div className="flex gap-3 items-start mb-4 text-blue-800 text-sm">
+               <Info size={20} className="shrink-0 mt-0.5"/>
+               <p>Her bestemmer du hvor mange som kan melde seg på. Hvis du f.eks. har 4 stoler rundt bordet, skriver du 4. Hvis dere skal møtes ute i parken og det er plass til alle, kan du velge "Ubegrenset".</p>
+            </div>
+
+            <div className="flex items-center gap-4 mb-4 bg-white p-3 rounded-lg border border-blue-100 w-fit">
+              <span className="font-bold text-blue-900 flex items-center gap-2"><Users size={18}/> Antall plasser:</span>
               <input 
                 type="number" 
                 value={antallPlasser} 
                 onChange={e => setAntallPlasser(e.target.value)} 
                 disabled={ingenBegrensning}
-                style={{ width: '80px', padding: '8px', borderRadius: '8px', border: '1px solid #cbd5e1', textAlign: 'center', fontWeight: 'bold' }} 
+                className="w-20 p-2 border-2 border-blue-200 rounded-lg text-center font-bold text-xl disabled:opacity-50" 
               />
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <input type="checkbox" checked={ingenBegrensning} onChange={e => setIngenBegrensning(e.target.checked)} style={{ transform: 'scale(1.2)' }} />
-              <label style={{ fontSize: '14px', color: '#475569' }}>Ubegrenset antall (Åpent for alle)</label>
+            <div className="flex items-center gap-2 ml-1">
+              <input type="checkbox" checked={ingenBegrensning} onChange={e => setIngenBegrensning(e.target.checked)} className="w-5 h-5 text-blue-600 rounded cursor-pointer" />
+              <label className="text-sm text-slate-600 font-medium cursor-pointer" onClick={() => setIngenBegrensning(!ingenBegrensning)}>Sett til ubegrenset (Alle får plass)</label>
             </div>
           </div>
 
+          {/* BESKRIVELSE MED FORKLARING */}
           <div>
-            <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '8px', color: '#334155' }}>Info</label>
-            <textarea value={beskrivelse} onChange={e => setBeskrivelse(e.target.value)} rows={3} style={{ width: '100%', padding: '16px', borderRadius: '12px', border: '1px solid #cbd5e1', fontSize: '16px' }} placeholder="Beskrivelse..." />
+            <label className="font-bold text-slate-700 mb-2 block flex gap-2 text-sm uppercase tracking-wide"><FileText size={16}/> Beskrivelse</label>
+            <p className="text-xs text-slate-500 mb-2">Her kan du skrive litt om hva dere skal gjøre. Trengs det spesielle klær? Koster det noe? Skal dere spise?</p>
+            <textarea value={beskrivelse} onChange={e => setBeskrivelse(e.target.value)} rows={4} className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-400" placeholder="Skriv litt om aktiviteten her..." />
           </div>
 
-          <button onClick={lagreAktivitet} disabled={loading} style={{ width: '100%', padding: '16px', backgroundColor: '#0f172a', color: 'white', borderRadius: '12px', fontWeight: 'bold', fontSize: '18px', border: 'none', cursor: 'pointer' }}>
-            {loading ? 'Lagrer...' : 'Publiser Aktivitet'}
+          <button onClick={lagreAktivitet} disabled={loading} className="w-full bg-blue-600 text-white font-bold py-4 rounded-xl shadow-lg hover:bg-blue-700 transition-all hover:scale-[1.01]">
+            {loading ? <Loader2 className="animate-spin mx-auto" /> : 'Publiser Aktivitet'}
           </button>
         </div>
       </div>
