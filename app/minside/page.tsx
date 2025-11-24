@@ -4,14 +4,14 @@ import { useEffect, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { LogOut, Plus, Calendar, MapPin, Clock, History } from 'lucide-react'
+import { LogOut, Calendar, ArrowRight, History } from 'lucide-react'
 
 export default function MinSide() {
   const supabase = createClient()
   const router = useRouter()
   const [profil, setProfil] = useState<any>(null)
   const [kommende, setKommende] = useState<any[]>([])
-  const [tidligere, setTidligere] = useState<any[]>([]) // Historikk
+  const [tidligere, setTidligere] = useState<any[]>([])
   const [visHistorikk, setVisHistorikk] = useState(false)
 
   useEffect(() => {
@@ -22,20 +22,11 @@ export default function MinSide() {
       const { data: prof } = await supabase.from('profiles').select('*').eq('id', user.id).single()
       setProfil(prof)
 
-      // Hent aktiviteter jeg er med på
       const { data: paameldinger } = await supabase.from('participants').select('activity_id').eq('user_id', user.id)
       if (paameldinger && paameldinger.length > 0) {
         const ids = paameldinger.map(p => p.activity_id)
         const { data: akts } = await supabase.from('activities').select('*').in('id', ids).order('created_at', { ascending: false })
-        
-        if (akts) {
-          // Enkel sortering basert på dato-string er vanskelig, så vi bruker created_at som en "ca" sortering her for demo, 
-          // men ideelt sett burde dato vært et ekte Date-felt i databasen.
-          // Her legger jeg bare alt i kommende foreløpig, og viser logikken for historikk.
-          setKommende(akts)
-          // I en ekte app ville vi filtrert på dato < Date.now() for historikk
-          setTidligere(akts.slice(5)) // Demo: Late som om de eldste er historikk
-        }
+        if (akts) setKommende(akts) // Enkel demo: Alt er kommende
       }
     }
     load()
@@ -44,56 +35,60 @@ export default function MinSide() {
   const loggUt = async () => { await supabase.auth.signOut(); router.push('/') }
 
   return (
-    <div className="min-h-screen bg-slate-100 pb-20">
-      <nav className="bg-white border-b border-slate-200 p-4 flex justify-between items-center">
-        <h1 className="font-black text-xl text-slate-900">Min Side</h1>
-        <button onClick={loggUt} className="text-sm font-bold text-slate-500 hover:text-slate-900 flex items-center gap-2"><LogOut size={16}/> Logg ut</button>
+    <div style={{ minHeight: '100vh', backgroundColor: '#F8FAFC', paddingBottom: '80px', fontFamily: 'system-ui, sans-serif' }}>
+      <nav style={{ backgroundColor: 'white', borderBottom: '1px solid #e2e8f0', padding: '16px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <h1 style={{ fontWeight: '900', fontSize: '20px', color: '#0f172a' }}>Min Side</h1>
+        <button onClick={loggUt} style={{ border: 'none', background: 'none', fontWeight: 'bold', color: '#64748b', cursor: 'pointer', display: 'flex', gap: '8px' }}><LogOut size={16}/> Logg ut</button>
       </nav>
 
-      <main className="max-w-3xl mx-auto p-6 space-y-8">
+      <div style={{ maxWidth: '800px', margin: '40px auto', padding: '20px' }}>
         
-        <div className="card p-8 bg-gradient-to-br from-blue-600 to-blue-800 text-white">
-          <h2 className="text-3xl font-bold mb-2">Hei, {profil?.full_name || 'Venn'}! 👋</h2>
-          <p className="opacity-90 mb-6">Her er oversikten din.</p>
+        <div style={{ background: 'linear-gradient(135deg, #2563eb, #1e40af)', color: 'white', padding: '32px', borderRadius: '24px', marginBottom: '40px', boxShadow: '0 10px 20px -5px rgba(37, 99, 235, 0.3)' }}>
+          <h2 style={{ fontSize: '28px', fontWeight: 'bold', marginBottom: '8px' }}>Hei, {profil?.full_name || 'Venn'}! 👋</h2>
+          <p style={{ opacity: '0.9', marginBottom: '24px' }}>Her er din oversikt.</p>
           {profil?.rolle === 'senior' && (
-            <div className="bg-white/10 p-4 rounded-xl backdrop-blur-sm border border-white/20">
-              <p className="text-sm font-bold uppercase tracking-wider opacity-70 mb-1">Din kode for pårørende</p>
-              <p className="text-3xl font-mono font-black tracking-widest">{profil?.invite_code || '...'}</p>
+            <div style={{ background: 'rgba(255,255,255,0.1)', padding: '16px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.2)' }}>
+              <p style={{ fontSize: '12px', fontWeight: 'bold', textTransform: 'uppercase', opacity: '0.7', marginBottom: '4px' }}>Din kode for pårørende</p>
+              <p style={{ fontSize: '24px', fontFamily: 'monospace', fontWeight: 'bold', letterSpacing: '2px' }}>{profil?.invite_code || '...'}</p>
             </div>
           )}
         </div>
 
         <div>
-          <h3 className="text-xl font-bold text-slate-800 mb-4 flex items-center gap-2"><Calendar/> Det som kommer</h3>
-          <div className="space-y-4">
-            {kommende.length === 0 && <p className="text-slate-500">Du har ikke meldt deg på noe enda.</p>}
+          <h3 style={{ fontSize: '18px', fontWeight: 'bold', color: '#0f172a', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}><Calendar size={20}/> Det som kommer</h3>
+          <div style={{ display: 'grid', gap: '16px' }}>
+            {kommende.length === 0 && <p style={{ color: '#64748b' }}>Du har ikke meldt deg på noe enda.</p>}
             {kommende.map(a => (
-              <Link href={`/aktivitet/${a.id}`} key={a.id} className="card p-4 flex items-center justify-between hover:border-blue-300 transition-colors group">
-                <div>
-                  <h4 className="font-bold text-slate-900 group-hover:text-blue-600">{a.tittel}</h4>
-                  <p className="text-sm text-slate-500 flex gap-3 mt-1"><span>{a.dato}</span> <span>📍 {a.sted}</span></p>
+              <Link href={`/aktivitet/${a.id}`} key={a.id} style={{ textDecoration: 'none' }}>
+                <div style={{ backgroundColor: 'white', padding: '20px', borderRadius: '16px', border: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', transition: 'transform 0.2s' }}
+                     onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-2px)'}
+                     onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}>
+                  <div>
+                    <h4 style={{ fontWeight: 'bold', color: '#0f172a', marginBottom: '4px' }}>{a.tittel}</h4>
+                    <p style={{ fontSize: '14px', color: '#64748b', display: 'flex', gap: '12px' }}><span>{a.dato}</span> <span>📍 {a.sted}</span></p>
+                  </div>
+                  <ArrowRight size={18} color="#cbd5e1"/>
                 </div>
-                <ArrowRight size={18} className="text-slate-300 group-hover:text-blue-600"/>
               </Link>
             ))}
           </div>
         </div>
 
-        <button onClick={() => setVisHistorikk(!visHistorikk)} className="flex items-center gap-2 text-slate-500 font-bold hover:text-slate-800">
+        <button onClick={() => setVisHistorikk(!visHistorikk)} style={{ marginTop: '40px', display: 'flex', alignItems: 'center', gap: '8px', border: 'none', background: 'none', fontWeight: 'bold', color: '#64748b', cursor: 'pointer' }}>
           <History size={18}/> {visHistorikk ? 'Skjul historikk' : 'Se tidligere aktiviteter'}
         </button>
 
         {visHistorikk && (
-          <div className="space-y-4 opacity-70">
+          <div style={{ marginTop: '20px', opacity: '0.6', display: 'grid', gap: '16px' }}>
             {tidligere.map(a => (
-              <div key={a.id} className="card p-4 bg-slate-50 border-slate-100 flex justify-between items-center">
-                <div><h4 className="font-bold text-slate-600 line-through">{a.tittel}</h4><p className="text-xs text-slate-400">Gjennomført</p></div>
+              <div key={a.id} style={{ padding: '16px', backgroundColor: '#f8fafc', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+                <h4 style={{ fontWeight: 'bold', color: '#475569', textDecoration: 'line-through' }}>{a.tittel}</h4>
               </div>
             ))}
           </div>
         )}
 
-      </main>
+      </div>
     </div>
   )
 }
