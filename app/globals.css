@@ -2,7 +2,8 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Ingen @apply her! Kun standard CSS. */
 body {
-  background-color: #F8FAFC;
+  background-color: #F1F5F9;
   color: #0f172a;
 }
