@@ -2,7 +2,6 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Her kan du legge til egne justeringer om nødvendig, men vi holder det rent */
 body {
   background-color: #F8FAFC;
   color: #0f172a;

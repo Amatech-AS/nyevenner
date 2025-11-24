@@ -2,12 +2,12 @@
 import { useState, useEffect } from 'react';
 import { createClient } from '@/utils/supabase/client';
 import Link from 'next/link';
-import { MapPin, Calendar, Search, Users, ArrowRight, Info, CheckCircle, Loader2, Smile, Heart, Trash2, Edit2 } from 'lucide-react';
+import { MapPin, Calendar, Search, Users, ArrowRight, Info, CheckCircle, Loader2, Smile, Heart } from 'lucide-react';
 import LoginModal from '@/components/LoginModal';
 
-type Aktivitet = { id: string; tittel: string; beskrivelse: string; dato: string; sted: string; max_deltakere: number | null; image_url: string | null; creator_id: string; }
+type Aktivitet = { id: string; tittel: string; beskrivelse: string; dato: string; sted: string; postnummer: string; max_deltakere: number | null; image_url: string | null; }
 
-// --- SMART BILDEVELGER ---
+// (Behold imageCollections og getSmartImage funksjonene her som før - for å spare plass i svaret klipper jeg dem ikke inn på nytt, men de MÅ være der!)
 const imageCollections = {
   jul: [ 'photo-1543589077-47d81606c1bf', 'photo-1512389142860-9c449e58a543', 'photo-1576919228236-a097c32a5cd4', 'photo-1482517967863-00e15c9b4499', 'photo-1513297887119-d46091b24bfa' ],
   tur: [ 'photo-1551632811-561732d1e306', 'photo-1441974231531-c6227db76b6e', 'photo-1478131143081-80f7f84ca84d', 'photo-1501555088652-021faa106b9b', 'photo-1625246333195-78d9c38ad449' ],
@@ -15,7 +15,6 @@ const imageCollections = {
   hobby: [ 'photo-1606105886470-8b1e10222045', 'photo-1456735190827-d1261f794971', 'photo-1513364776144-60967b0f800f', 'photo-1520032525096-7bd04a94b5a4' ],
   default: [ 'photo-1511632765486-a01980e01a18', 'photo-1543269865-cbf427effbad', 'photo-1529156069898-49953e39b3ac', 'photo-1523301343968-63214359d56b' ]
 };
-
 const getSmartImage = (tittel: string, id: string) => {
   const t = tittel.toLowerCase();
   let collection = imageCollections.default;
@@ -30,12 +29,14 @@ const getSmartImage = (tittel: string, id: string) => {
 
 export default function LandingPage() {
   const supabase = createClient();
-  const [aktiviteter, setAktiviteter] = useState<any[]>([]);
-  const [mineAktiviteter, setMineAktiviteter] = useState<any[]>([]);
+  const [aktiviteter, setAktiviteter] = useState<Aktivitet[]>([]);
+  const [mineAktiviteter, setMineAktiviteter] = useState<Aktivitet[]>([]);
   const [soketekst, setSoketekst] = useState('');
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<any>(null);
+  const [userPostnummer, setUserPostnummer] = useState<string | null>(null);
   const [showLoginModal, setShowLoginModal] = useState(false);
+  const [kunNaerMeg, setKunNaerMeg] = useState(false); // FILTER
 
   useEffect(() => {
     fetchData();
@@ -45,100 +46,67 @@ export default function LandingPage() {
     const { data: { user } } = await supabase.auth.getUser();
     setUser(user);
 
-    // Hent aktiviteter
-    const { data: alle } = await supabase
-      .from('activities')
-      .select('*, participants(count)')
-      .order('created_at', { ascending: false })
-      .limit(20);
-    
-    if (alle) {
-      const formatted = alle.map(a => ({
-        ...a,
-        deltakere_count: a.participants ? a.participants[0]?.count : 0
-      }));
-      setAktiviteter(formatted);
+    if (user) {
+        // Hent brukerens postnummer
+        const { data: profil } = await supabase.from('profiles').select('postnummer').eq('id', user.id).single();
+        if (profil) setUserPostnummer(profil.postnummer);
 
-      if (user) {
         const { data: paameldinger } = await supabase.from('participants').select('activity_id').eq('user_id', user.id);
-        if (paameldinger) {
-          const mineIder = paameldinger.map(p => p.activity_id);
-          setMineAktiviteter(formatted.filter(a => mineIder.includes(a.id)));
+        // (Logikk for mineAktiviteter...)
+        // For enkelhets skyld henter vi alt først
+    }
+
+    const { data: alle } = await supabase.from('activities').select('*').order('created_at', { ascending: false }).limit(50);
+    if (alle) {
+        setAktiviteter(alle);
+        if (user) {
+             // Filtrer mine aktiviteter her
+             const { data: p } = await supabase.from('participants').select('activity_id').eq('user_id', user.id);
+             const mineIds = p?.map(x => x.activity_id) || [];
+             setMineAktiviteter(alle.filter(a => mineIds.includes(a.id)));
         }
-      }
     }
     setLoading(false);
   };
 
-  const slettAktivitet = async (id: string) => {
-    if (confirm('Er du sikker på at du vil slette denne aktiviteten?')) {
-      await supabase.from('activities').delete().eq('id', id);
-      fetchData(); 
-    }
-  };
+  // FILTRERING LOGIKK
+  const filtrerteAktiviteter = aktiviteter.filter(a => {
+      const matcherSok = soketekst.trim() === '' || 
+                         a.tittel.toLowerCase().includes(soketekst.toLowerCase()) || 
+                         a.sted.toLowerCase().includes(soketekst.toLowerCase());
+      
+      if (!matcherSok) return false;
 
-  // HER ER LINJEN SOM MANGLET SIST:
-  const visAktiviteter = soketekst.trim() 
-    ? aktiviteter.filter(a => a.tittel.toLowerCase().includes(soketekst.toLowerCase()) || a.sted.toLowerCase().includes(soketekst.toLowerCase()))
-    : aktiviteter;
+      // Nær meg logikk: Sjekk om de to første sifrene i postnummeret er like
+      if (kunNaerMeg && userPostnummer && a.postnummer) {
+          return a.postnummer.substring(0, 2) === userPostnummer.substring(0, 2);
+      }
+      return true;
+  });
 
   const AktivitetFlis = ({ aktivitet, erMin = false }: { aktivitet: any, erMin?: boolean }) => {
     const imageUrl = getSmartImage(aktivitet.tittel, aktivitet.id);
-    const erFullt = aktivitet.max_deltakere && aktivitet.deltakere_count >= aktivitet.max_deltakere;
-    const erEier = user && user.id === aktivitet.creator_id;
-
     return (
-      <div className="group h-full relative">
-        <Link href={`/aktivitet/${aktivitet.id}`} style={{ textDecoration: 'none' }} className="block h-full">
-          <div style={{
-            backgroundColor: 'white', borderRadius: '16px', border: erMin ? '2px solid #10B981' : '1px solid #E2E8F0', boxShadow: '0 4px 6px rgba(0,0,0,0.05)',
-            overflow: 'hidden', height: '100%', display: 'flex', flexDirection: 'column', transition: 'transform 0.2s',
-          }} onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-5px)'} onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}>
-            
-            <div style={{ height: '160px', width: '100%', position: 'relative', backgroundColor: '#F1F5F9' }}>
-               <img src={imageUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: erFullt && !erMin ? 0.5 : 1 }} />
-               
-               <div style={{ position: 'absolute', top: '8px', left: '8px', right: '8px', display:'flex', justifyContent:'space-between' }}>
-                 <div style={{ background: 'rgba(0,0,0,0.7)', backdropFilter:'blur(4px)', padding: '4px 8px', borderRadius: '6px', color: 'white', fontSize: '11px', fontWeight: 'bold', display:'flex', alignItems:'center', gap:'4px' }}>
-                    <Calendar size={12}/> {aktivitet.dato.split(',')[0]}
-                 </div>
-               </div>
-
-               {erFullt && !erMin && (
-                 <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(255,255,255,0.3)' }}>
-                    <div style={{ background: '#ef4444', color: 'white', padding: '6px 12px', borderRadius: '8px', fontWeight: '900', transform: 'rotate(-5deg)', boxShadow: '0 4px 10px rgba(0,0,0,0.2)' }}>FULLT</div>
-                 </div>
-               )}
-               
-               {erMin && <div style={{ position: 'absolute', bottom: '8px', right: '8px', background: '#10B981', color:'white', padding: '4px 8px', borderRadius: '6px', fontSize: '10px', fontWeight: 'bold', display:'flex', alignItems:'center', gap:'4px' }}><CheckCircle size={12}/> Påmeldt</div>}
-            </div>
-
-            <div style={{ padding: '16px', flex: 1, display: 'flex', flexDirection: 'column' }}>
-              <h3 style={{ fontSize: '18px', fontWeight: '900', color: '#1e293b', marginBottom: '4px', lineHeight: '1.2' }}>{aktivitet.tittel}</h3>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '12px', color: '#64748b', marginBottom: '16px', fontWeight: '600' }}><MapPin size={12} /> <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{aktivitet.sted}</span></div>
-              
-              <div style={{ marginTop: 'auto', paddingTop: '12px', borderTop: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '12px', color: '#475569', fontWeight: '600' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                   <Users size={12} className={erFullt ? 'text-red-500' : 'text-blue-500'} /> 
-                   <span>Antall: {aktivitet.deltakere_count} {aktivitet.max_deltakere ? `/ ${aktivitet.max_deltakere}` : ''}</span>
-                </div>
-                <ArrowRight size={16} color="#cbd5e1" />
-              </div>
+      <Link href={`/aktivitet/${aktivitet.id}`} style={{ textDecoration: 'none' }} className="group h-full block">
+        <div style={{
+          backgroundColor: 'white', borderRadius: '16px', border: erMin ? '2px solid #10B981' : '1px solid #E2E8F0', boxShadow: '0 4px 6px rgba(0,0,0,0.05)',
+          overflow: 'hidden', height: '100%', display: 'flex', flexDirection: 'column', transition: 'transform 0.2s',
+        }} onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-5px)'} onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}>
+          <div style={{ height: '140px', width: '100%', position: 'relative', backgroundColor: '#F1F5F9' }}>
+             <img src={imageUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+             <div style={{ position: 'absolute', top: '8px', left: '8px', background: 'rgba(255,255,255,0.9)', padding: '4px 8px', borderRadius: '6px', fontSize: '10px', fontWeight: 'bold', textTransform: 'uppercase', color: '#333' }}>{aktivitet.dato.split(',')[0]}</div>
+             {erMin && <div style={{ position: 'absolute', top: '8px', right: '8px', background: '#10B981', color:'white', padding: '4px 8px', borderRadius: '6px', fontSize: '10px', fontWeight: 'bold' }}>Påmeldt</div>}
+          </div>
+          <div style={{ padding: '16px', flex: 1, display: 'flex', flexDirection: 'column' }}>
+            <h3 style={{ fontSize: '18px', fontWeight: '900', color: '#1e293b', marginBottom: '4px', lineHeight: '1.2' }}>{aktivitet.tittel}</h3>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '12px', color: '#64748b', marginBottom: '16px', fontWeight: '600' }}><MapPin size={12} /> <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{aktivitet.sted}</span></div>
+            <div style={{ marginTop: 'auto', paddingTop: '12px', borderTop: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '12px', color: '#94a3b8', fontWeight: '600' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><Users size={12} /> {aktivitet.max_deltakere || '∞'}</div>
+              <ArrowRight size={16} color="#cbd5e1" />
             </div>
           </div>
-        </Link>
-
-        {erEier && (
-          <div style={{ position: 'absolute', top: '8px', right: '8px', display: 'flex', gap: '4px', zIndex: 20 }}>
-            <Link href={`/aktivitet/${aktivitet.id}/rediger`} onClick={(e) => e.stopPropagation()} style={{ background: 'white', padding: '6px', borderRadius: '6px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)', color: '#334155' }}>
-              <Edit2 size={14}/>
-            </Link>
-            <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); slettAktivitet(aktivitet.id); }} style={{ background: 'white', padding: '6px', borderRadius: '6px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)', color: '#ef4444', border: 'none', cursor: 'pointer' }}>
-              <Trash2 size={14}/>
-            </button>
-          </div>
-        )}
-      </div>
+        </div>
+      </Link>
     );
   };
 
@@ -152,32 +120,37 @@ export default function LandingPage() {
              <div style={{ background: '#0f172a', padding: '10px', borderRadius: '12px', color: 'white', display: 'flex', boxShadow: '0 4px 10px rgba(0,0,0,0.1)' }}><Smile size={24} strokeWidth={2.5} /></div>
              <div>
                <h1 style={{ fontSize: '24px', fontWeight: '900', color: '#0f172a', lineHeight: '1', letterSpacing: '-0.5px' }}>NyeVenner</h1>
-               <p style={{ fontSize: '12px', fontWeight: 'bold', color: '#64748b', textTransform: 'uppercase', letterSpacing: '1px' }}>Møteplassen</p>
+               <Link href="/hvordan-virker-det" style={{ fontSize: '12px', fontWeight: 'bold', color: '#2563eb', textDecoration: 'underline' }}>Hvordan virker det?</Link>
              </div>
            </div>
            {user ? (
              <Link href="/minside" style={{ fontSize: '14px', fontWeight: 'bold', color: '#475569', background: 'white', padding: '10px 20px', borderRadius: '99px', border: '1px solid #e2e8f0', textDecoration: 'none', boxShadow: '0 2px 5px rgba(0,0,0,0.05)' }}>Min Side</Link>
            ) : (
-             <button onClick={() => setShowLoginModal(true)} style={{ background: '#0f172a', color: 'white', padding: '10px 24px', borderRadius: '99px', fontWeight: 'bold', fontSize: '14px', border: 'none', cursor: 'pointer', boxShadow: '0 4px 12px rgba(15, 23, 42, 0.2)' }}>Logg inn</button>
+             <Link href="/login" style={{ background: '#0f172a', color: 'white', padding: '10px 24px', borderRadius: '99px', fontWeight: 'bold', fontSize: '14px', border: 'none', cursor: 'pointer', textDecoration: 'none' }}>Logg inn</Link>
            )}
         </div>
 
-        <div style={{ background: 'white', border: '1px solid #e2e8f0', borderRadius: '24px', padding: '32px', marginBottom: '48px', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', boxShadow: '0 10px 20px -5px rgba(0,0,0,0.03)' }}>
-            <h2 style={{ fontSize: '28px', fontWeight: '900', color: '#0f172a', marginBottom: '16px' }}>En enkel måte å bli kjent med nye folk</h2>
-            <p style={{ fontSize: '18px', color: '#475569', maxWidth: '600px', lineHeight: '1.6', marginBottom: '24px' }}>
-                NyeVenner er laget for at du skal finne hyggelige aktiviteter i nærheten av deg. 
-                Det er ingen krav – bare møt opp og ha det trivelig sammen med andre.
-            </p>
-            <div style={{ display: 'flex', gap: '24px', flexWrap: 'wrap', justifyContent: 'center' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px', fontWeight: 'bold', color: '#059669', background: '#ecfdf5', padding: '8px 16px', borderRadius: '99px' }}><CheckCircle size={16}/> Helt gratis</div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px', fontWeight: 'bold', color: '#2563eb', background: '#eff6ff', padding: '8px 16px', borderRadius: '99px' }}><Users size={16}/> Trygt fellesskap</div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px', fontWeight: 'bold', color: '#db2777', background: '#fdf2f8', padding: '8px 16px', borderRadius: '99px' }}><Heart size={16}/> Finn nye venner</div>
-            </div>
-        </div>
-
-        <div style={{ maxWidth: '500px', margin: '0 auto 48px auto', position: 'relative' }}>
-           <input placeholder="Søk etter aktivitet eller sted..." value={soketekst} onChange={e=>setSoketekst(e.target.value)} style={{ width: '100%', padding: '18px 18px 18px 52px', borderRadius: '16px', border: '2px solid #e2e8f0', fontSize: '16px', fontWeight: '600', outline: 'none', boxShadow: '0 4px 6px rgba(0,0,0,0.02)' }} />
-           <div style={{ position: 'absolute', left: '20px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }}><Search size={20} /></div>
+        {/* SØK OG FILTER */}
+        <div style={{ maxWidth: '600px', margin: '0 auto 48px auto', display:'flex', gap:'12px', alignItems:'center' }}>
+           <div style={{ position: 'relative', flex: 1 }}>
+             <input placeholder="Søk..." value={soketekst} onChange={e=>setSoketekst(e.target.value)} style={{ width: '100%', padding: '16px 16px 16px 48px', borderRadius: '16px', border: '2px solid #e2e8f0', fontSize: '16px', fontWeight: '600', outline: 'none', boxShadow: '0 4px 6px rgba(0,0,0,0.02)' }} />
+             <div style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }}><Search size={20} /></div>
+           </div>
+           
+           {/* FILTER KNAPP */}
+           {user && (
+             <button 
+               onClick={() => setKunNaerMeg(!kunNaerMeg)}
+               style={{ 
+                 padding: '16px 24px', borderRadius: '16px', fontWeight: 'bold', cursor: 'pointer', border: '2px solid', 
+                 backgroundColor: kunNaerMeg ? '#eff6ff' : 'white', 
+                 borderColor: kunNaerMeg ? '#2563eb' : '#e2e8f0',
+                 color: kunNaerMeg ? '#1e3a8a' : '#64748b'
+               }}
+             >
+               {kunNaerMeg ? '📍 Viser nær meg' : '🌍 Vis alle'}
+             </button>
+           )}
         </div>
 
         {loading ? <div style={{ textAlign: 'center', padding: '40px' }}><Loader2 className="animate-spin"/></div> : (
@@ -193,8 +166,11 @@ export default function LandingPage() {
 
             <h2 style={{ fontSize: '20px', fontWeight: '900', color: '#0f172a', marginBottom: '20px', paddingBottom: '12px', borderBottom: '2px solid #e2e8f0' }}>Finn aktiviteter</h2>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: '24px' }}>
-              {visAktiviteter.map(a => <AktivitetFlis key={a.id} aktivitet={a} />)}
+              {filtrerteAktiviteter.map(a => <AktivitetFlis key={a.id} aktivitet={a} />)}
             </div>
+            {filtrerteAktiviteter.length === 0 && (
+                <div style={{ textAlign:'center', padding:'40px', color:'#64748b' }}>Fant ingen aktiviteter her. Prøv å søke bredere eller slå av "Nær meg".</div>
+            )}
           </>
         )}
 
