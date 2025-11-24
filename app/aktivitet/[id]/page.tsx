@@ -88,6 +88,7 @@ export default function AktivitetDetalj() {
       
       <div style={{ maxWidth: '1100px', margin: '0 auto', padding: '40px 20px' }}>
         
+        {/* TOPP-LINJE */}
         <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'32px'}}>
             <button onClick={() => router.back()} style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'white', padding: '10px 20px', borderRadius: '99px', border: '1px solid #e2e8f0', cursor: 'pointer', fontWeight: 'bold', color: '#64748b', fontSize: '14px', boxShadow: '0 2px 5px rgba(0,0,0,0.05)' }}>
             <ArrowLeft size={16} /> Tilbake
@@ -103,6 +104,7 @@ export default function AktivitetDetalj() {
 
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '32px', alignItems: 'flex-start' }}>
             
+            {/* VENSTRE SIDE */}
             <div style={{ flex: '2', minWidth: '300px', backgroundColor: 'white', padding: '40px', borderRadius: '24px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px rgba(0,0,0,0.02)' }}>
               
               <div style={{display:'flex', gap:'12px', marginBottom:'24px', flexWrap:'wrap'}}>
@@ -118,6 +120,7 @@ export default function AktivitetDetalj() {
                 {aktivitet.beskrivelse}
               </div>
 
+              {/* CHAT */}
               {erPaameldt ? (
                 <div style={{marginTop:'20px'}}>
                   <h3 style={{ fontWeight: 'bold', marginBottom: '16px', fontSize:'20px', color:'#0f172a' }}>💬 Samtale</h3>
@@ -127,21 +130,24 @@ export default function AktivitetDetalj() {
                 <div style={{ background: '#eff6ff', padding: '24px', borderRadius: '16px', color: '#1e40af', display: 'flex', gap: '16px', alignItems: 'center', border:'1px solid #dbeafe' }}>
                   <div style={{background:'white', padding:'10px', borderRadius:'50%'}}><Info size={24} /></div>
                   <div>
-                      <p style={{fontWeight:'bold'}}>Dette er en lukket chat</p>
+                      <p style={{fontWeight:'bold'}}>Lukket chat</p>
                       <p style={{ fontSize: '14px', opacity:0.8 }}>Meld deg på aktiviteten for å se beskjeder og snakke med de andre.</p>
                   </div>
                 </div>
               )}
             </div>
 
+            {/* HØYRE SIDE */}
             <div style={{ flex: '1', minWidth: '300px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
               
+              {/* BILDE */}
               <div style={{ backgroundColor: 'white', padding: '8px', borderRadius: '24px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px rgba(0,0,0,0.05)' }}>
                 <div style={{ width: '100%', aspectRatio: '4/3', borderRadius: '16px', overflow: 'hidden', backgroundColor: '#f1f5f9' }}>
                   <img src={aktivitet.image_url || ''} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" />
                 </div>
               </div>
 
+              {/* PRIS */}
               <div style={{ backgroundColor: 'white', padding: '24px', borderRadius: '24px', border: '1px solid #e2e8f0', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center' }}>
                  <p style={{ fontSize: '12px', fontWeight: 'bold', textTransform: 'uppercase', color: '#94a3b8', marginBottom: '4px' }}>Pris per person</p>
                  {aktivitet.price > 0 ? (
@@ -153,6 +159,7 @@ export default function AktivitetDetalj() {
                  )}
               </div>
 
+              {/* STATUS */}
               <div style={{ backgroundColor: 'white', padding: '24px', borderRadius: '24px', border: '1px solid #e2e8f0', textAlign: 'center' }}>
                 <p style={{ fontSize: '12px', fontWeight: 'bold', textTransform: 'uppercase', color: '#94a3b8', marginBottom: '8px' }}>Ledige plasser</p>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', marginBottom: '24px' }}>
@@ -166,7 +173,7 @@ export default function AktivitetDetalj() {
                   onClick={toggle}
                   disabled={erFullt && !erPaameldt}
                   style={{ 
-                      width: '100%', padding: '16px', borderRadius: '12px', fontWeight: 'bold', fontSize: '16px', border: 'none', cursor: 'pointer',
+                      width: '100%', padding: '16px', borderRadius: '12px', fontWeight: 'bold', fontSize: '16px', cursor: 'pointer',
                       display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
                       backgroundColor: erPaameldt ? 'white' : erFullt ? '#e2e8f0' : '#0f172a',
                       color: erPaameldt ? '#ef4444' : erFullt ? '#94a3b8' : 'white',
@@ -184,6 +191,7 @@ export default function AktivitetDetalj() {
                 )}
               </div>
 
+              {/* KART */}
               <div style={{ backgroundColor: 'white', padding: '16px', borderRadius: '24px', border: '1px solid #e2e8f0' }}>
                 <p style={{ fontWeight: 'bold', marginBottom: '12px', display: 'flex', gap: '8px', alignItems:'center', color:'#334155' }}>
                     <div style={{background:'#eff6ff', padding:'8px', borderRadius:'50%'}}><MapPin size={16} color="#2563eb"/></div>
