@@ -6,13 +6,10 @@ const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
   title: "NyeVenner - Relasjoner skapes hele livet",
-  description: "Norges nye møteplass. Finn gåturer, kaffetreff og sosiale aktiviteter i ditt nabolag. Enkelt, trygt og gratis.",
-  openGraph: {
-    title: "NyeVenner - Relasjoner skapes hele livet",
-    description: "Finn noen å finne på noe med. Se aktiviteter i nærheten av deg.",
-    type: "website",
-    locale: "nb_NO",
-    siteName: "NyeVenner",
+  description: "En møteplass for sosiale aktiviteter og nye vennskap.",
+  icons: {
+    // Bruker et grønt hjerte som ikon. Enkelt og symboliserer vennskap.
+    icon: "https://fav.farm/💚", 
   },
 };
 
