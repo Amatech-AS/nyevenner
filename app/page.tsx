@@ -2,12 +2,12 @@
 import { useState, useEffect } from 'react';
 import { createClient } from '@/utils/supabase/client';
 import Link from 'next/link';
-import { MapPin, Calendar, Search, Users, ArrowRight, Info, CheckCircle, Loader2, Heart, Trash2, Edit2, Plus } from 'lucide-react';
+import { MapPin, Calendar, Search, Users, ArrowRight, Info, CheckCircle, Loader2, Trash2, Edit2, Plus } from 'lucide-react';
 import LoginModal from '@/components/LoginModal';
 
 type Aktivitet = { id: string; tittel: string; beskrivelse: string; dato: string; sted: string; postnummer: string; max_deltakere: number | null; image_url: string | null; creator_id: string; }
 
-// SMART BILDEVELGER (Backup hvis database-bilde mangler)
+// --- SMART BILDEVELGER ---
 const imageCollections = {
   jul: [ 'photo-1543589077-47d81606c1bf', 'photo-1512389142860-9c449e58a543', 'photo-1576919228236-a097c32a5cd4', 'photo-1482517967863-00e15c9b4499', 'photo-1513297887119-d46091b24bfa' ],
   tur: [ 'photo-1551632811-561732d1e306', 'photo-1441974231531-c6227db76b6e', 'photo-1478131143081-80f7f84ca84d', 'photo-1501555088652-021faa106b9b', 'photo-1625246333195-78d9c38ad449' ],
@@ -15,13 +15,15 @@ const imageCollections = {
   hobby: [ 'photo-1606105886470-8b1e10222045', 'photo-1456735190827-d1261f794971', 'photo-1513364776144-60967b0f800f', 'photo-1520032525096-7bd04a94b5a4' ],
   default: [ 'photo-1511632765486-a01980e01a18', 'photo-1543269865-cbf427effbad', 'photo-1529156069898-49953e39b3ac', 'photo-1523301343968-63214359d56b' ]
 };
+
 const getSmartImage = (tittel: string, id: string) => {
-  const t = tittel.toLowerCase();
+  const t = tittel ? tittel.toLowerCase() : '';
   let collection = imageCollections.default;
   if (t.includes('jul') || t.includes('advent') || t.includes('lucia')) collection = imageCollections.jul;
   else if (t.includes('tur') || t.includes('gå') || t.includes('marka')) collection = imageCollections.tur;
   else if (t.includes('mat') || t.includes('kaffe') || t.includes('vaffel') || t.includes('middag')) collection = imageCollections.mat;
   else if (t.includes('strikk') || t.includes('bok') || t.includes('quiz') || t.includes('kino')) collection = imageCollections.hobby;
+  
   const idSum = id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
   const imageId = collection[idSum % collection.length];
   return `https://images.unsplash.com/${imageId}?q=80&w=400&auto=format&fit=crop`;
@@ -87,8 +89,10 @@ export default function LandingPage() {
   });
 
   const AktivitetFlis = ({ aktivitet, erMin = false }: { aktivitet: any, erMin?: boolean }) => {
-    // FIKS: Bruker database-bilde, ELLER smart-bilde hvis det mangler
-    const imageUrl = aktivitet.image_url || getSmartImage(aktivitet.tittel, aktivitet.id);
+    // FIX: Sjekker om image_url finnes, hvis ikke bruk smart-bilde
+    const imageUrl = aktivitet.image_url && aktivitet.image_url.length > 10 
+      ? aktivitet.image_url 
+      : getSmartImage(aktivitet.tittel, aktivitet.id);
     
     const erFullt = aktivitet.max_deltakere && aktivitet.deltakere_count >= aktivitet.max_deltakere;
     const erEier = user && user.id === aktivitet.creator_id;
@@ -104,10 +108,12 @@ export default function LandingPage() {
             <div style={{ height: '160px', width: '100%', position: 'relative', backgroundColor: '#F1F5F9' }}>
                <img src={imageUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: erFullt && !erMin ? 0.5 : 1 }} />
                
-               {/* DATO OG TID OVER BILDET */}
                <div style={{ position: 'absolute', top: '8px', left: '8px', right: '8px', display:'flex', justifyContent:'space-between' }}>
                  <div style={{ background: 'rgba(0,0,0,0.7)', backdropFilter:'blur(4px)', padding: '4px 8px', borderRadius: '6px', color: 'white', fontSize: '11px', fontWeight: 'bold', display:'flex', alignItems:'center', gap:'4px' }}>
-                    <Calendar size={12}/> {aktivitet.dato}
+                    <Calendar size={12}/> {aktivitet.dato ? aktivitet.dato.split(' ')[0] : ''}
+                 </div>
+                 <div style={{ background: 'rgba(0,0,0,0.7)', backdropFilter:'blur(4px)', padding: '4px 8px', borderRadius: '6px', color: 'white', fontSize: '11px', fontWeight: 'bold' }}>
+                    {aktivitet.dato ? aktivitet.dato.split('kl')[1] : ''}
                  </div>
                </div>
 
@@ -137,6 +143,7 @@ export default function LandingPage() {
 
         {erEier && (
           <div style={{ position: 'absolute', top: '8px', right: '8px', display: 'flex', gap: '4px', zIndex: 20 }}>
+            {/* FIKS: Link til redigeringssiden som faktisk finnes */}
             <Link href={`/aktivitet/${aktivitet.id}/rediger`} onClick={(e) => e.stopPropagation()} style={{ background: 'white', padding: '6px', borderRadius: '6px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)', color: '#334155' }}>
               <Edit2 size={14}/>
             </Link>
@@ -150,31 +157,42 @@ export default function LandingPage() {
   };
 
   return (
-    <main style={{ minHeight: '100vh', backgroundColor: '#F8FAFC', paddingBottom: '80px', fontFamily: 'system-ui, sans-serif' }}>
+    <main style={{ minHeight: '100vh', backgroundColor: '#F8FAFC', paddingBottom: '80px', fontFamily: 'system-ui, sans-serif', overflowX: 'hidden' }}>
       {showLoginModal && <LoginModal onClose={() => setShowLoginModal(false)} />}
 
-      <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '24px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '40px' }}>
-           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-             {/* NY LOGO - KUN TEKST, STØRRE, TYNNERE */}
-             <div>
-               <h1 style={{ fontSize: '36px', fontWeight: '300', color: '#0f172a', lineHeight: '1', letterSpacing: '1px' }}>
-                 NyeVenner
-               </h1>
-             </div>
+      <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '20px' }}>
+        
+        {/* HEADER */}
+        <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '20px', marginBottom: '60px' }}>
+           
+           <div style={{ flex: '1 1 150px', display: 'flex', justifyContent: 'flex-start' }}>
+             <Link href="/ny-aktivitet" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', fontSize: '14px', fontWeight: 'bold', color: '#0f172a', background: 'white', padding: '10px 20px', borderRadius: '99px', border: '1px solid #e2e8f0', textDecoration: 'none', boxShadow: '0 2px 5px rgba(0,0,0,0.05)', whiteSpace: 'nowrap' }}>
+               <Plus size={16}/> <span className="hidden sm:inline">Lag aktivitet</span><span className="sm:hidden">Ny</span>
+             </Link>
            </div>
-           {user ? (
-             <Link href="/minside" style={{ fontSize: '14px', fontWeight: 'bold', color: '#475569', background: 'white', padding: '10px 20px', borderRadius: '99px', border: '1px solid #e2e8f0', textDecoration: 'none', boxShadow: '0 2px 5px rgba(0,0,0,0.05)' }}>Min Side</Link>
-           ) : (
-             <Link href="/login" style={{ background: '#0f172a', color: 'white', padding: '10px 24px', borderRadius: '99px', fontWeight: 'bold', fontSize: '14px', border: 'none', cursor: 'pointer', textDecoration: 'none' }}>Logg inn</Link>
-           )}
+
+           {/* NY LOGO (Font Serif, Stor, Tynnere) */}
+           <div style={{ flex: '0 0 auto', textAlign: 'center' }}>
+             <h1 style={{ fontFamily: 'Times New Roman, serif', fontSize: '48px', fontWeight: '300', color: '#0f172a', lineHeight: '1', letterSpacing: '2px', margin: 0 }}>
+                NyeVenner
+             </h1>
+             <p style={{ fontSize: '11px', fontWeight: '600', color: '#059669', textTransform: 'uppercase', letterSpacing: '3px', marginTop: '6px' }}>Relasjoner skapes hele livet</p>
+           </div>
+
+           <div style={{ flex: '1 1 150px', display: 'flex', justifyContent: 'flex-end' }}>
+             {user ? (
+               <Link href="/minside" style={{ fontSize: '14px', fontWeight: 'bold', color: '#475569', background: 'white', padding: '10px 20px', borderRadius: '99px', border: '1px solid #e2e8f0', textDecoration: 'none', boxShadow: '0 2px 5px rgba(0,0,0,0.05)', whiteSpace: 'nowrap' }}>Min Side</Link>
+             ) : (
+               <Link href="/login" style={{ background: '#0f172a', color: 'white', padding: '10px 24px', borderRadius: '99px', fontWeight: 'bold', fontSize: '14px', border: 'none', cursor: 'pointer', textDecoration: 'none', whiteSpace: 'nowrap' }}>Logg inn</Link>
+             )}
+           </div>
         </div>
 
         {/* SØK & SALGSPITCH */}
         <div style={{ maxWidth: '600px', margin: '0 auto 48px auto' }}>
             <div style={{ position: 'relative', marginBottom: '24px' }}>
-                <input placeholder="Søk etter aktivitet eller sted..." value={soketekst} onChange={e=>setSoketekst(e.target.value)} style={{ width: '100%', padding: '18px 18px 18px 52px', borderRadius: '16px', border: '2px solid #e2e8f0', fontSize: '16px', fontWeight: '600', outline: 'none', boxShadow: '0 4px 6px rgba(0,0,0,0.02)' }} />
-                <div style={{ position: 'absolute', left: '20px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }}><Search size={20} /></div>
+                <input placeholder="Søk etter aktivitet..." value={soketekst} onChange={e=>setSoketekst(e.target.value)} style={{ width: '100%', padding: '16px 16px 16px 48px', borderRadius: '16px', border: '2px solid #e2e8f0', fontSize: '16px', fontWeight: '600', outline: 'none', boxShadow: '0 4px 6px rgba(0,0,0,0.02)' }} />
+                <div style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }}><Search size={20} /></div>
             </div>
 
             <div style={{ background: 'white', border: '1px solid #e2e8f0', borderRadius: '20px', padding: '24px', textAlign: 'center', boxShadow: '0 10px 20px -5px rgba(0,0,0,0.03)' }}>
@@ -216,12 +234,6 @@ export default function LandingPage() {
             )}
           </>
         )}
-
-        <div style={{ marginTop: '80px', textAlign: 'center' }}>
-           <Link href="/ny-aktivitet" style={{ display: 'inline-flex', alignItems: 'center', gap: '10px', background: '#10b981', color: 'white', padding: '18px 40px', borderRadius: '99px', fontWeight: 'bold', fontSize: '18px', textDecoration: 'none', boxShadow: '0 15px 30px -5px rgba(16, 185, 129, 0.4)', transition: 'transform 0.2s' }}>
-             + Lag en ny aktivitet
-           </Link>
-        </div>
       </div>
     </main>
   );
