@@ -5,7 +5,7 @@ const withPWA = require("@ducanh2912/next-pwa").default({
   aggressiveFrontEndNavCaching: true,
   reloadOnOnline: true,
   swcMinify: true,
-  disable: false, // PWA er påslått også i development
+  disable: false,
   workboxOptions: {
     disableDevLogs: true,
   },
@@ -20,6 +20,11 @@ const nextConfig = {
       },
     ],
   },
+  // HER ER FIKSEN:
+  // Vi skrur av Turbopack eksplisitt slik at PWA-pluginen får jobbe med Webpack
+  experimental: {
+     turbopack: false,
+  }
 };
 
 module.exports = withPWA(nextConfig);
