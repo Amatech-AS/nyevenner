@@ -2,31 +2,56 @@
 import { useState, useEffect } from 'react';
 import { createClient } from '@/utils/supabase/client';
 import Link from 'next/link';
-import { MapPin, Calendar, Search, Users, ArrowRight, Info, CheckCircle, Loader2, Smile, Heart, Plus, Edit2, Trash2 } from 'lucide-react';
+import { MapPin, Calendar, Search, Users, ArrowRight, Info, CheckCircle, Loader2, Smile, Heart, Plus, Trash2, Edit2 } from 'lucide-react';
 import LoginModal from '@/components/LoginModal';
 
 type Aktivitet = { id: string; tittel: string; beskrivelse: string; dato: string; sted: string; postnummer: string; max_deltakere: number | null; image_url: string | null; creator_id: string; }
 
-// --- SMART BILDEVELGER (Oppdatert for Pizza/Date) ---
+// --- 1. OMFATTENDE BILDE-BIBLIOTEK ---
 const imageCollections = {
   jul: [ 'photo-1543589077-47d81606c1bf', 'photo-1512389142860-9c449e58a543', 'photo-1576919228236-a097c32a5cd4', 'photo-1482517967863-00e15c9b4499', 'photo-1513297887119-d46091b24bfa' ],
-  tur: [ 'photo-1551632811-561732d1e306', 'photo-1441974231531-c6227db76b6e', 'photo-1478131143081-80f7f84ca84d', 'photo-1501555088652-021faa106b9b', 'photo-1625246333195-78d9c38ad449' ],
-  mat: [ 'photo-1511920170033-f8396924c348', 'photo-1559339352-11d035aa65de', 'photo-1528605248644-14dd04022da1', 'photo-1515003197210-e0cd71810b5f', 'photo-1590947132387-155cc02f3212' ], // La til pizza-ish bilde
-  hobby: [ 'photo-1606105886470-8b1e10222045', 'photo-1456735190827-d1261f794971', 'photo-1513364776144-60967b0f800f', 'photo-1520032525096-7bd04a94b5a4' ],
-  default: [ 'photo-1511632765486-a01980e01a18', 'photo-1543269865-cbf427effbad', 'photo-1529156069898-49953e39b3ac', 'photo-1523301343968-63214359d56b' ]
+  
+  tur: [ 'photo-1551632811-561732d1e306', 'photo-1441974231531-c6227db76b6e', 'photo-1478131143081-80f7f84ca84d', 'photo-1501555088652-021faa106b9b', 'photo-1625246333195-78d9c38ad449', 'photo-1445307907250-c96ae79d9154' ],
+  
+  mat: [ 'photo-1511920170033-f8396924c348', 'photo-1559339352-11d035aa65de', 'photo-1528605248644-14dd04022da1', 'photo-1515003197210-e0cd71810b5f', 'photo-1590947132387-155cc02f3212', 'photo-1554118811-1e0d58224f24' ],
+  
+  kultur: [ 'photo-1489599849927-2ee91cede3ba', 'photo-1514525253440-b393452e3728', 'photo-1460661631160-a53839739d72', 'photo-1524368535928-5b5e00ddc76b' ], // Kino, teater, bok
+  
+  spill: [ 'photo-1606326608606-aa0b62935f2b', 'photo-1529699211952-734e80c4d42b', 'photo-1632501641765-e568d28b0015' ], // Quiz, kort, bingo
+  
+  hobby: [ 'photo-1606105886470-8b1e10222045', 'photo-1513364776144-60967b0f800f', 'photo-1520032525096-7bd04a94b5a4', 'photo-1621252179027-94459d27d3ee' ],
+  
+  trening: [ 'photo-1576610616656-d3aa5d1f4534', 'photo-1571019614242-c5c5dee9f50b', 'photo-1518611012118-696072aa579a' ],
+
+  // Sikkerhetsnett: Generelle, hyggelige bilder som passer til alt
+  default: [ 
+    'photo-1511632765486-a01980e01a18', // Venner prater
+    'photo-1543269865-cbf427effbad', // Sosialt
+    'photo-1529156069898-49953e39b3ac', // Smil
+    'photo-1523301343968-63214359d56b', // Håndtrykk
+    'photo-1521737604893-d14cc237f11d', // Møte
+    'photo-1491438590914-bc09fcaaf77a'  // Folk
+  ]
 };
 
+// --- 2. SMART FUNKSJON SOM SJEKKER ALLE ORD ---
 const getSmartImage = (tittel: string, id: string) => {
-  const t = tittel.toLowerCase();
+  const t = tittel ? tittel.toLowerCase() : '';
   let collection = imageCollections.default;
-  if (t.includes('jul') || t.includes('advent') || t.includes('lucia')) collection = imageCollections.jul;
-  else if (t.includes('tur') || t.includes('gå') || t.includes('marka')) collection = imageCollections.tur;
-  // Oppdatert mat-kategori:
-  else if (t.includes('mat') || t.includes('kaffe') || t.includes('vaffel') || t.includes('middag') || t.includes('pizza') || t.includes('date') || t.includes('spise')) collection = imageCollections.mat;
-  else if (t.includes('strikk') || t.includes('bok') || t.includes('quiz') || t.includes('kino')) collection = imageCollections.hobby;
+
+  // Sjekk nøkkelord i prioritert rekkefølge
+  if (t.match(/jul|advent|lucia|nisse|desember|gløgg/)) collection = imageCollections.jul;
+  else if (t.match(/tur|gå|vandre|marka|skog|fjell|natur|bål|ute|ski/)) collection = imageCollections.tur;
+  else if (t.match(/mat|spise|kaffe|vaffel|lunsj|middag|kake|baking|restaurant|cafe|pizza|burger|øl|vin|grill/)) collection = imageCollections.mat;
+  else if (t.match(/kino|film|teater|konsert|musikk|sang|kor|bibliotek|bok|lese/)) collection = imageCollections.kultur;
+  else if (t.match(/quiz|bingo|spill|kort|sjakk|bridge/)) collection = imageCollections.spill;
+  else if (t.match(/strikk|hekl|håndarbeid|sying|maling|hage|blomst/)) collection = imageCollections.hobby;
+  else if (t.match(/svøm|bad|trening|gym|yoga|dans|trim|stavgang/)) collection = imageCollections.trening;
   
+  // Velg et bilde fra samlingen basert på ID (slik at det er konsistent men tilfeldig fordelt)
   const idSum = id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
   const imageId = collection[idSum % collection.length];
+  
   return `https://images.unsplash.com/${imageId}?q=80&w=400&auto=format&fit=crop`;
 };
 
@@ -57,7 +82,10 @@ export default function LandingPage() {
     const { data: alle } = await supabase.from('activities').select('*, participants(count)').order('created_at', { ascending: false }).limit(50);
     
     if (alle) {
-        const formatted = alle.map(a => ({ ...a, deltakere_count: a.participants ? a.participants[0]?.count : 0 }));
+        const formatted = alle.map(a => ({ 
+          ...a, 
+          deltakere_count: a.participants ? a.participants[0]?.count : 0 
+        }));
         setAktiviteter(formatted);
         if (user) {
              const { data: p } = await supabase.from('participants').select('activity_id').eq('user_id', user.id);
@@ -79,7 +107,6 @@ export default function LandingPage() {
       const matcherSok = soketekst.trim() === '' || 
                          a.tittel.toLowerCase().includes(soketekst.toLowerCase()) || 
                          a.sted.toLowerCase().includes(soketekst.toLowerCase());
-      
       if (!matcherSok) return false;
       if (kunNaerMeg && userPostnummer && a.postnummer) {
           return a.postnummer.substring(0, 2) === userPostnummer.substring(0, 2);
@@ -88,7 +115,11 @@ export default function LandingPage() {
   });
 
   const AktivitetFlis = ({ aktivitet, erMin = false }: { aktivitet: any, erMin?: boolean }) => {
-    const imageUrl = aktivitet.image_url || getSmartImage(aktivitet.tittel, aktivitet.id);
+    // SIKRER AT ALLE FÅR BILDE: Bruk db-bilde hvis det finnes, ellers generer smart bilde
+    const imageUrl = (aktivitet.image_url && aktivitet.image_url.length > 10) 
+      ? aktivitet.image_url 
+      : getSmartImage(aktivitet.tittel, aktivitet.id);
+    
     const erFullt = aktivitet.max_deltakere && aktivitet.deltakere_count >= aktivitet.max_deltakere;
     const erEier = user && user.id === aktivitet.creator_id;
 
@@ -105,7 +136,10 @@ export default function LandingPage() {
                
                <div style={{ position: 'absolute', top: '8px', left: '8px', right: '8px', display:'flex', justifyContent:'space-between' }}>
                  <div style={{ background: 'rgba(0,0,0,0.7)', backdropFilter:'blur(4px)', padding: '4px 8px', borderRadius: '6px', color: 'white', fontSize: '11px', fontWeight: 'bold', display:'flex', alignItems:'center', gap:'4px' }}>
-                    <Calendar size={12}/> {aktivitet.dato.split(',')[0]}
+                    <Calendar size={12}/> {aktivitet.dato ? aktivitet.dato.split(' ')[0] : ''}
+                 </div>
+                 <div style={{ background: 'rgba(0,0,0,0.7)', backdropFilter:'blur(4px)', padding: '4px 8px', borderRadius: '6px', color: 'white', fontSize: '11px', fontWeight: 'bold' }}>
+                    {aktivitet.dato && aktivitet.dato.includes('kl') ? aktivitet.dato.split('kl')[1] : ''}
                  </div>
                </div>
 
@@ -135,7 +169,7 @@ export default function LandingPage() {
 
         {erEier && (
           <div style={{ position: 'absolute', top: '8px', right: '8px', display: 'flex', gap: '4px', zIndex: 20 }}>
-            <Link href={`/aktivitet/${aktivitet.id}/rediger`} onClick={(e) => e.stopPropagation()} style={{ background: 'white', padding: '6px', borderRadius: '6px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)', color: '#334155' }}>
+            <Link href={`/aktivitet/${aktivitet.id}/rediger`} onClick={(e) => e.stopPropagation()} style={{ background: 'white', padding: '6px', borderRadius: '6px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)', color: '#334155', display:'flex', alignItems:'center', justifyContent:'center' }}>
               <Edit2 size={14}/>
             </Link>
             <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); slettAktivitet(aktivitet.id); }} style={{ background: 'white', padding: '6px', borderRadius: '6px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)', color: '#ef4444', border: 'none', cursor: 'pointer' }}>
@@ -148,29 +182,34 @@ export default function LandingPage() {
   };
 
   return (
-    <main style={{ minHeight: '100vh', backgroundColor: '#F8FAFC', paddingBottom: '80px', fontFamily: 'system-ui, sans-serif' }}>
+    <main style={{ minHeight: '100vh', backgroundColor: '#F8FAFC', paddingBottom: '80px', fontFamily: 'system-ui, sans-serif', overflowX: 'hidden' }}>
       {showLoginModal && <LoginModal onClose={() => setShowLoginModal(false)} />}
 
       <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '24px' }}>
         
-        {/* HEADER */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '40px' }}>
-           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-             <div style={{ background: '#0f172a', padding: '10px', borderRadius: '12px', color: 'white', display: 'flex', boxShadow: '0 4px 10px rgba(0,0,0,0.1)' }}><Smile size={24} strokeWidth={2.5} /></div>
-             <div>
-               <h1 style={{ fontSize: '24px', fontWeight: '900', color: '#0f172a', lineHeight: '1', letterSpacing: '-0.5px' }}>NyeVenner</h1>
-               <p style={{ fontSize: '12px', fontWeight: 'bold', color: '#64748b', textTransform: 'uppercase', letterSpacing: '1px' }}>Relasjoner skapes hele livet</p>
-             </div>
+        <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '20px', marginBottom: '60px' }}>
+           <div style={{ flex: '1 1 150px', display: 'flex', justifyContent: 'flex-start' }}>
+             <Link href="/ny-aktivitet" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', fontSize: '14px', fontWeight: 'bold', color: '#0f172a', background: 'white', padding: '10px 20px', borderRadius: '99px', border: '1px solid #e2e8f0', textDecoration: 'none', boxShadow: '0 2px 5px rgba(0,0,0,0.05)', whiteSpace: 'nowrap' }}>
+               <Plus size={16}/> <span className="hidden sm:inline">Lag aktivitet</span><span className="sm:hidden">Ny</span>
+             </Link>
            </div>
-           {user ? (
-             // FIKS: Bedre design på "Min Side" knappen
-             <Link href="/minside" style={{ fontSize: '14px', fontWeight: 'bold', color: '#0f172a', background: 'white', padding: '10px 24px', borderRadius: '99px', border: '2px solid #e2e8f0', textDecoration: 'none', boxShadow: '0 4px 10px rgba(0,0,0,0.05)' }}>Min Side</Link>
-           ) : (
-             <Link href="/login" style={{ background: '#0f172a', color: 'white', padding: '10px 24px', borderRadius: '99px', fontWeight: 'bold', fontSize: '14px', border: 'none', cursor: 'pointer', textDecoration: 'none' }}>Logg inn</Link>
-           )}
+
+           <div style={{ flex: '0 0 auto', textAlign: 'center' }}>
+             <h1 style={{ fontFamily: 'Times New Roman, serif', fontSize: '48px', fontWeight: '300', color: '#0f172a', lineHeight: '1', letterSpacing: '2px', margin: 0 }}>
+                NyeVenner
+             </h1>
+             <p style={{ fontSize: '11px', fontWeight: '600', color: '#059669', textTransform: 'uppercase', letterSpacing: '3px', marginTop: '6px' }}>Relasjoner skapes hele livet</p>
+           </div>
+
+           <div style={{ flex: '1 1 150px', display: 'flex', justifyContent: 'flex-end' }}>
+             {user ? (
+               <Link href="/minside" style={{ fontSize: '14px', fontWeight: 'bold', color: '#475569', background: 'white', padding: '10px 20px', borderRadius: '99px', border: '1px solid #e2e8f0', textDecoration: 'none', boxShadow: '0 2px 5px rgba(0,0,0,0.05)', whiteSpace: 'nowrap' }}>Min Side</Link>
+             ) : (
+               <Link href="/login" style={{ background: '#0f172a', color: 'white', padding: '10px 24px', borderRadius: '99px', fontWeight: 'bold', fontSize: '14px', border: 'none', cursor: 'pointer', textDecoration: 'none', whiteSpace: 'nowrap' }}>Logg inn</Link>
+             )}
+           </div>
         </div>
 
-        {/* SØK & SALGSPITCH */}
         <div style={{ maxWidth: '600px', margin: '0 auto 48px auto' }}>
             <div style={{ position: 'relative', marginBottom: '24px' }}>
                 <input placeholder="Søk etter aktivitet..." value={soketekst} onChange={e=>setSoketekst(e.target.value)} style={{ width: '100%', padding: '18px 18px 18px 52px', borderRadius: '16px', border: '2px solid #e2e8f0', fontSize: '16px', fontWeight: '600', outline: 'none', boxShadow: '0 4px 6px rgba(0,0,0,0.02)' }} />
@@ -189,7 +228,6 @@ export default function LandingPage() {
             </div>
         </div>
 
-        {/* FILTER TABS */}
         {user && (
             <div style={{ display: 'flex', justifyContent: 'center', gap: '8px', marginBottom: '40px' }}>
                 <button onClick={() => setKunNaerMeg(false)} style={{ padding: '10px 24px', borderRadius: '99px', fontWeight: 'bold', border: 'none', cursor: 'pointer', fontSize: '14px', transition: 'all 0.2s', backgroundColor: !kunNaerMeg ? '#0f172a' : '#e2e8f0', color: !kunNaerMeg ? 'white' : '#64748b' }}>Vis alle</button>
