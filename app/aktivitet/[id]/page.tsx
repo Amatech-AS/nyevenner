@@ -181,7 +181,7 @@ export default function AktivitetDetalj() {
                  )}
               </div>
 
-              {/* STATUS & KNAPP (Her var feilen sist) */}
+              {/* STATUS */}
               <div style={{ backgroundColor: 'white', padding: '24px', borderRadius: '24px', border: '1px solid #e2e8f0', textAlign: 'center' }}>
                 <p style={{ fontSize: '12px', fontWeight: 'bold', textTransform: 'uppercase', color: '#94a3b8', marginBottom: '8px' }}>Ledige plasser</p>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', marginBottom: '24px' }}>
@@ -195,11 +195,10 @@ export default function AktivitetDetalj() {
                   onClick={toggle}
                   disabled={erFullt && !erPaameldt}
                   style={{ 
-                      width: '100%', padding: '16px', borderRadius: '12px', fontWeight: 'bold', fontSize: '16px', border: 'none', cursor: 'pointer',
+                      width: '100%', padding: '16px', borderRadius: '12px', fontWeight: 'bold', fontSize: '16px', cursor: 'pointer',
                       display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
                       backgroundColor: erPaameldt ? 'white' : erFullt ? '#e2e8f0' : '#0f172a',
                       color: erPaameldt ? '#ef4444' : erFullt ? '#94a3b8' : 'white',
-                      // HER ER FIKSEN: Kun én border-definisjon nå
                       border: erPaameldt ? '2px solid #fee2e2' : 'none',
                       boxShadow: erPaameldt ? 'none' : '0 4px 12px rgba(15, 23, 42, 0.2)'
                   }}
@@ -217,4 +216,26 @@ export default function AktivitetDetalj() {
               {/* KART OG VEIBESKRIVELSE */}
               <div style={{ backgroundColor: 'white', padding: '16px', borderRadius: '24px', border: '1px solid #e2e8f0' }}>
                 <p style={{ fontWeight: 'bold', marginBottom: '12px', display: 'flex', gap: '8px', alignItems:'center', color:'#334155' }}>
-                    <div style={{background:'#eff6ff', padding:'8px', borderRadius:'50%'}}><MapPin siz
+                    <div style={{background:'#eff6ff', padding:'8px', borderRadius:'50%'}}><MapPin size={16} color="#2563eb"/></div>
+                    {aktivitet.sted}
+                </p>
+                <div style={{ height: '180px', borderRadius: '16px', overflow: 'hidden', border:'1px solid #e2e8f0', marginBottom:'12px' }}>
+                    <Map adresse={aktivitet.sted} />
+                </div>
+                <a 
+                  href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(aktivitet.sted)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', width: '100%', padding: '12px', borderRadius: '12px', border: '1px solid #e2e8f0', background: 'white', color: '#334155', fontWeight: 'bold', fontSize: '14px', textDecoration: 'none' }}
+                >
+                  <Navigation size={16} /> Veibeskrivelse
+                </a>
+              </div>
+
+            </div>
+
+        </div>
+      </div>
+    </div>
+  )
+}
