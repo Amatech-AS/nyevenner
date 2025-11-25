@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import { createClient } from '@/utils/supabase/client';
 import Link from 'next/link';
-import { MapPin, Calendar, Search, Users, ArrowRight, Info, CheckCircle, Loader2, Smile, Heart, Plus, Edit2, Trash2 } from 'lucide-react';
+import { MapPin, Calendar, Search, Users, ArrowRight, Info, CheckCircle, Loader2, Smile, Heart, Plus, Edit2, Trash2, Clock } from 'lucide-react';
 import LoginModal from '@/components/LoginModal';
 
 type Aktivitet = { id: string; tittel: string; beskrivelse: string; dato: string; sted: string; postnummer: string; max_deltakere: number | null; image_url: string | null; creator_id: string; }
@@ -19,14 +19,48 @@ const imageCollections = {
 const getSmartImage = (tittel: string, id: string) => {
   const t = tittel ? tittel.toLowerCase() : '';
   let collection = imageCollections.default;
-  if (t.includes('jul') || t.includes('advent') || t.includes('lucia')) collection = imageCollections.jul;
-  else if (t.includes('tur') || t.includes('gå') || t.includes('marka')) collection = imageCollections.tur;
-  else if (t.includes('mat') || t.includes('kaffe') || t.includes('vaffel') || t.includes('middag') || t.includes('pizza') || t.includes('date') || t.includes('spise')) collection = imageCollections.mat;
-  else if (t.includes('strikk') || t.includes('bok') || t.includes('quiz') || t.includes('kino')) collection = imageCollections.hobby;
+  if (t.match(/jul|advent|lucia/)) collection = imageCollections.jul;
+  else if (t.match(/tur|gå|marka|skog|fjell|natur/)) collection = imageCollections.tur;
+  else if (t.match(/mat|spise|kaffe|vaffel|lunsj|middag|pizza|date|spise/)) collection = imageCollections.mat;
+  else if (t.match(/kino|film|strikk|quiz|bok/)) collection = imageCollections.hobby;
   
   const idSum = id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
   const imageId = collection[idSum % collection.length];
   return `https://images.unsplash.com/${imageId}?q=80&w=400&auto=format&fit=crop`;
+};
+
+// --- NEDTELLINGSKKALKULATOR ---
+const getDaysLeft = (datoString: string) => {
+    try {
+        if (!datoString) return null;
+        const currentYear = new Date().getFullYear();
+        const months = ['januar', 'februar', 'mars', 'april', 'mai', 'juni', 'juli', 'august', 'september', 'oktober', 'november', 'desember'];
+        const parts = datoString.split(' '); 
+        // Forventer format: "Lørdag 20. desember kl 12:00"
+        // parts[1] = "20."
+        // parts[2] = "desember"
+        if (parts.length < 3) return null;
+
+        const day = parseInt(parts[1].replace('.', ''));
+        const monthIndex = months.indexOf(parts[2].toLowerCase());
+        
+        if (monthIndex === -1) return null;
+
+        const targetDate = new Date(currentYear, monthIndex, day);
+        
+        // Hvis datoen har passert i år (f.eks vi er i desember og aktiviteten er i januar), legg til et år
+        if (targetDate < new Date() && monthIndex < new Date().getMonth()) {
+            targetDate.setFullYear(currentYear + 1);
+        }
+
+        const diff = targetDate.getTime() - new Date().getTime();
+        const days = Math.ceil(diff / (1000 * 60 * 60 * 24));
+        
+        if (days === 0) return 'I dag!';
+        if (days === 1) return 'I morgen';
+        if (days < 0) return 'Ferdig';
+        return `${days} dager igjen`;
+    } catch (e) { return null; }
 };
 
 export default function LandingPage() {
@@ -89,13 +123,10 @@ export default function LandingPage() {
   });
 
   const AktivitetFlis = ({ aktivitet, erMin = false }: { aktivitet: any, erMin?: boolean }) => {
-    // Fallback bilde hvis databasen er tom
-    const imageUrl = (aktivitet.image_url && aktivitet.image_url.length > 10) 
-      ? aktivitet.image_url 
-      : getSmartImage(aktivitet.tittel, aktivitet.id);
-    
+    const imageUrl = (aktivitet.image_url && aktivitet.image_url.length > 10) ? aktivitet.image_url : getSmartImage(aktivitet.tittel, aktivitet.id);
     const erFullt = aktivitet.max_deltakere && aktivitet.deltakere_count >= aktivitet.max_deltakere;
     const erEier = user && user.id === aktivitet.creator_id;
+    const daysLeft = erMin ? getDaysLeft(aktivitet.dato) : null;
 
     return (
       <div className="group h-full relative">
@@ -108,29 +139,49 @@ export default function LandingPage() {
             <div style={{ height: '160px', width: '100%', position: 'relative', backgroundColor: '#F1F5F9' }}>
                <img src={imageUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: erFullt && !erMin ? 0.5 : 1 }} />
                
+               {/* DATO OG TID OVER BILDET */}
                <div style={{ position: 'absolute', top: '8px', left: '8px', right: '8px', display:'flex', justifyContent:'space-between' }}>
                  <div style={{ background: 'rgba(0,0,0,0.7)', backdropFilter:'blur(4px)', padding: '4px 8px', borderRadius: '6px', color: 'white', fontSize: '11px', fontWeight: 'bold', display:'flex', alignItems:'center', gap:'4px' }}>
-                    <Calendar size={12}/> {aktivitet.dato ? aktivitet.dato.split(' ')[0] : ''}
+                    <Calendar size={12}/> {aktivitet.dato}
                  </div>
                </div>
 
+               {/* FULLT-MERKE (Rød lapp) */}
                {erFullt && !erMin && (
                  <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(255,255,255,0.3)' }}>
                     <div style={{ background: '#ef4444', color: 'white', padding: '6px 12px', borderRadius: '8px', fontWeight: '900', transform: 'rotate(-5deg)', boxShadow: '0 4px 10px rgba(0,0,0,0.2)' }}>FULLT</div>
                  </div>
                )}
                
-               {erMin && <div style={{ position: 'absolute', bottom: '8px', right: '8px', background: '#10B981', color:'white', padding: '4px 8px', borderRadius: '6px', fontSize: '10px', fontWeight: 'bold', display:'flex', alignItems:'center', gap:'4px' }}><CheckCircle size={12}/> Påmeldt</div>}
+               {/* PÅMELDT / NEDTELLING */}
+               {erMin && (
+                   <div style={{ position: 'absolute', bottom: '8px', right: '8px', display:'flex', gap:'6px' }}>
+                       {/* DAGER IGJEN */}
+                       {daysLeft && daysLeft !== 'Ferdig' && (
+                           <div style={{ background: 'white', color:'#059669', padding: '4px 8px', borderRadius: '6px', fontSize: '10px', fontWeight: '900', boxShadow:'0 2px 4px rgba(0,0,0,0.1)', display:'flex', alignItems:'center', gap:'4px' }}>
+                               <Clock size={12}/> {daysLeft}
+                           </div>
+                       )}
+                       {/* PÅMELDT-IKON */}
+                       <div style={{ background: '#10B981', color:'white', padding: '4px 8px', borderRadius: '6px', fontSize: '10px', fontWeight: 'bold', display:'flex', alignItems:'center', gap:'4px' }}>
+                           <CheckCircle size={12}/> Påmeldt
+                       </div>
+                   </div>
+               )}
             </div>
 
             <div style={{ padding: '16px', flex: 1, display: 'flex', flexDirection: 'column' }}>
               <h3 style={{ fontSize: '18px', fontWeight: '900', color: '#1e293b', marginBottom: '4px', lineHeight: '1.2' }}>{aktivitet.tittel}</h3>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '12px', color: '#64748b', marginBottom: '16px', fontWeight: '600' }}><MapPin size={12} /> <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{aktivitet.sted}</span></div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '12px', color: '#64748b', marginBottom: '16px', fontWeight: '600' }}>
+                  <MapPin size={12} /> 
+                  <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{aktivitet.sted}</span>
+              </div>
               
+              {/* ANTALL PÅMELDTE (Ny tekst) */}
               <div style={{ marginTop: 'auto', paddingTop: '12px', borderTop: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '12px', color: '#475569', fontWeight: '600' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                    <Users size={12} className={erFullt ? 'text-red-500' : 'text-blue-500'} /> 
-                   <span>Antall: {aktivitet.deltakere_count} {aktivitet.max_deltakere ? `/ ${aktivitet.max_deltakere}` : ''}</span>
+                   <span>Antall påmeldte: {aktivitet.deltakere_count} {aktivitet.max_deltakere ? `/ ${aktivitet.max_deltakere}` : ''}</span>
                 </div>
                 <ArrowRight size={16} color="#cbd5e1" />
               </div>
@@ -154,21 +205,25 @@ export default function LandingPage() {
 
       <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '24px' }}>
         
+        {/* HEADER */}
         <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '20px', marginBottom: '60px' }}>
+           
+           {/* LAG AKTIVITET (VENSTRE) */}
            <div style={{ flex: '1 1 150px', display: 'flex', justifyContent: 'flex-start' }}>
              <Link href="/ny-aktivitet" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', fontSize: '14px', fontWeight: 'bold', color: '#0f172a', background: 'white', padding: '10px 20px', borderRadius: '99px', border: '1px solid #e2e8f0', textDecoration: 'none', boxShadow: '0 2px 5px rgba(0,0,0,0.05)', whiteSpace: 'nowrap' }}>
                <Plus size={16}/> <span className="hidden sm:inline">Lag aktivitet</span><span className="sm:hidden">Ny</span>
              </Link>
            </div>
 
+           {/* LOGO (MIDTEN) */}
            <div style={{ flex: '0 0 auto', textAlign: 'center' }}>
-             {/* NY LOGO HER */}
              <h1 style={{ fontFamily: 'Times New Roman, serif', fontSize: '48px', fontWeight: '300', color: '#0f172a', lineHeight: '1', letterSpacing: '2px', margin: 0 }}>
                 NyeVenner
              </h1>
              <p style={{ fontSize: '11px', fontWeight: '600', color: '#059669', textTransform: 'uppercase', letterSpacing: '3px', marginTop: '6px' }}>Relasjoner skapes hele livet</p>
            </div>
 
+           {/* MIN SIDE (HØYRE) */}
            <div style={{ flex: '1 1 150px', display: 'flex', justifyContent: 'flex-end' }}>
              {user ? (
                <Link href="/minside" style={{ fontSize: '14px', fontWeight: 'bold', color: '#0f172a', background: 'white', padding: '10px 24px', borderRadius: '99px', border: '2px solid #e2e8f0', textDecoration: 'none', boxShadow: '0 4px 10px rgba(0,0,0,0.05)', whiteSpace: 'nowrap' }}>Min Side</Link>
@@ -178,6 +233,7 @@ export default function LandingPage() {
            </div>
         </div>
 
+        {/* SØK & SALGSPITCH */}
         <div style={{ maxWidth: '600px', margin: '0 auto 48px auto' }}>
             <div style={{ position: 'relative', marginBottom: '24px' }}>
                 <input placeholder="Søk etter aktivitet..." value={soketekst} onChange={e=>setSoketekst(e.target.value)} style={{ width: '100%', padding: '18px 18px 18px 52px', borderRadius: '16px', border: '2px solid #e2e8f0', fontSize: '16px', fontWeight: '600', outline: 'none', boxShadow: '0 4px 6px rgba(0,0,0,0.02)' }} />
@@ -196,6 +252,7 @@ export default function LandingPage() {
             </div>
         </div>
 
+        {/* FILTER TABS */}
         {user && (
             <div style={{ display: 'flex', justifyContent: 'center', gap: '8px', marginBottom: '40px' }}>
                 <button onClick={() => setKunNaerMeg(false)} style={{ padding: '10px 24px', borderRadius: '99px', fontWeight: 'bold', border: 'none', cursor: 'pointer', fontSize: '14px', transition: 'all 0.2s', backgroundColor: !kunNaerMeg ? '#0f172a' : '#e2e8f0', color: !kunNaerMeg ? 'white' : '#64748b' }}>Vis alle</button>
