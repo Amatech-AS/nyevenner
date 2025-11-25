@@ -24,49 +24,66 @@ export default function HvordanVirkerDet() {
           NyeVenner er et sted hvor du kan finne hyggelige ting å gjøre sammen med andre. <br/>Det er helt gratis, og du bestemmer selv hva du vil være med på.
         </p>
 
-        {/* --- EKSISTERENDE STEG 1-4 HER (Behold dem fra forrige versjon) --- */}
-        {/* Jeg limer inn hele koden for sikkerhets skyld */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
+          
+          {/* Steg 1 */}
           <div style={{ backgroundColor: 'white', padding: '32px', borderRadius: '24px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px rgba(0,0,0,0.02)' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '16px' }}>
               <div style={{ background: '#eff6ff', padding: '12px', borderRadius: '50%', color: '#2563eb' }}><UserPlus size={24} /></div>
               <h2 style={{ fontSize: '20px', fontWeight: 'bold', color: '#0f172a' }}>1. Lag en bruker</h2>
             </div>
-            <p style={{ fontSize: '16px', color: '#334155', lineHeight: '1.6' }}>Trykk "Logg inn" og velg "Ny bruker". Du trenger bare e-post.</p>
+            <p style={{ fontSize: '16px', color: '#334155', lineHeight: '1.6' }}>
+              For å melde deg på aktiviteter, må vi vite hvem du er. Trykk på "Logg inn" øverst på siden og velg "Ny bruker". Du trenger bare en e-postadresse.
+            </p>
           </div>
 
+          {/* Steg 2 */}
           <div style={{ backgroundColor: 'white', padding: '32px', borderRadius: '24px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px rgba(0,0,0,0.02)' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '16px' }}>
               <div style={{ background: '#fdf2f8', padding: '12px', borderRadius: '50%', color: '#db2777' }}><Search size={24} /></div>
               <h2 style={{ fontSize: '20px', fontWeight: 'bold', color: '#0f172a' }}>2. Finn noe du har lyst til</h2>
             </div>
-            <p style={{ fontSize: '16px', color: '#334155', lineHeight: '1.6' }}>Bla gjennom listen på forsiden. Trykk på en firkant for å lese mer.</p>
+            <p style={{ fontSize: '16px', color: '#334155', lineHeight: '1.6' }}>
+              På forsiden ser du mange firkanter (fliser). Hver flis er en aktivitet, for eksempel en gåtur eller kaffeprat. Trykk på flisen for å lese mer om hvor og når det skjer.
+            </p>
           </div>
 
+          {/* Steg 3 */}
           <div style={{ backgroundColor: 'white', padding: '32px', borderRadius: '24px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px rgba(0,0,0,0.02)' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '16px' }}>
               <div style={{ background: '#ecfdf5', padding: '12px', borderRadius: '50%', color: '#059669' }}><CheckCircle size={24} /></div>
               <h2 style={{ fontSize: '20px', fontWeight: 'bold', color: '#0f172a' }}>3. Bli med!</h2>
             </div>
-            <p style={{ fontSize: '16px', color: '#334155', lineHeight: '1.6' }}>Trykk på "Jeg blir med!" knappen. Da vet arrangøren at du kommer.</p>
+            <p style={{ fontSize: '16px', color: '#334155', lineHeight: '1.6' }}>
+              Når du finner noe du liker, trykker du på knappen "Jeg blir med!". Da vet arrangøren at du kommer. Du kan også se hvem andre som skal.
+            </p>
           </div>
-          
-           <div style={{ backgroundColor: '#fffbeb', padding: '32px', borderRadius: '24px', border: '1px solid #fcd34d' }}>
+
+          {/* Steg 4 (Pårørende) */}
+          <div style={{ backgroundColor: '#fffbeb', padding: '32px', borderRadius: '24px', border: '1px solid #fcd34d' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '16px' }}>
               <div style={{ background: '#fff7ed', padding: '12px', borderRadius: '50%', color: '#ea580c' }}><Heart size={24} /></div>
               <h2 style={{ fontSize: '20px', fontWeight: 'bold', color: '#78350f' }}>For pårørende</h2>
             </div>
-            <p style={{ fontSize: '16px', color: '#92400e', lineHeight: '1.6' }}>Du kan koble deg til en seniors konto med en kode fra "Min Side".</p>
+            <p style={{ fontSize: '16px', color: '#92400e', lineHeight: '1.6' }}>
+              Har du en sønn, datter eller venn som vil hjelpe deg? De kan koble seg til din profil. Da kan de se kalenderen din og hjelpe deg å huske avtaler. Du finner koden din inne på "Min Side".
+            </p>
           </div>
         </div>
 
-        {/* --- NY SEKSJON: APP INSTALLASJON --- */}
+        {/* --- SEKSJON: APP INSTALLASJON --- */}
         <div style={{ marginTop: '60px', borderTop: '1px solid #e2e8f0', paddingTop: '40px' }}>
             <h2 style={{ fontSize: '28px', fontWeight: '900', color: '#0f172a', textAlign: 'center', marginBottom: '32px' }}>
                 Få NyeVenner som app på mobilen
             </h2>
 
-            <div style={{ display: 'grid', md: {gridTemplateColumns: '1fr 1fr'}, gap: '24px' }}>
+            {/* 
+                HER ER FIKSEN: 
+                I stedet for 'md:', bruker vi 'gridTemplateColumns: repeat(auto-fit, minmax(300px, 1fr))'
+                Dette betyr: "Lag så mange kolonner på minst 300px som det er plass til".
+                På mobil blir det 1 kolonne, på PC blir det 2. Helt automatisk.
+            */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '24px' }}>
                 
                 {/* IPHONE */}
                 <div style={{ backgroundColor: 'white', padding: '24px', borderRadius: '24px', border: '1px solid #e2e8f0' }}>
