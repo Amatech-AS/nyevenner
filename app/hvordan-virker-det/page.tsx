@@ -12,19 +12,43 @@ export default function HvordanVirkerDet() {
           </Link>
         </div>
       </div>
+
       <div style={{ maxWidth: '800px', margin: '0 auto', padding: '0 20px' }}>
         <h1 style={{ fontSize: '32px', fontWeight: '900', color: '#0f172a', marginBottom: '16px', textAlign: 'center' }}>Slik bruker du NyeVenner</h1>
-        {/* ... (Behold steg 1, 2, 3 som før) ... */}
-        
-        {/* ENDRET PUNKT OM PÅRØRENDE */}
-        <div style={{ backgroundColor: '#fffbeb', padding: '32px', borderRadius: '24px', border: '1px solid #fcd34d', marginTop: '32px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '32px', marginTop:'40px' }}>
+          <div style={{ backgroundColor: 'white', padding: '32px', borderRadius: '24px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px rgba(0,0,0,0.02)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '16px' }}>
+              <div style={{ background: '#eff6ff', padding: '12px', borderRadius: '50%', color: '#2563eb' }}><UserPlus size={24} /></div>
+              <h2 style={{ fontSize: '20px', fontWeight: 'bold', color: '#0f172a' }}>1. Lag en bruker</h2>
+            </div>
+            <p style={{ fontSize: '16px', color: '#334155', lineHeight: '1.6' }}>Trykk på "Logg inn" øverst på siden og velg "Ny bruker".</p>
+          </div>
+          <div style={{ backgroundColor: 'white', padding: '32px', borderRadius: '24px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px rgba(0,0,0,0.02)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '16px' }}>
+              <div style={{ background: '#fdf2f8', padding: '12px', borderRadius: '50%', color: '#db2777' }}><Search size={24} /></div>
+              <h2 style={{ fontSize: '20px', fontWeight: 'bold', color: '#0f172a' }}>2. Finn noe du har lyst til</h2>
+            </div>
+            <p style={{ fontSize: '16px', color: '#334155', lineHeight: '1.6' }}>Trykk på flisene på forsiden for å lese mer.</p>
+          </div>
+          <div style={{ backgroundColor: 'white', padding: '32px', borderRadius: '24px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px rgba(0,0,0,0.02)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '16px' }}>
+              <div style={{ background: '#ecfdf5', padding: '12px', borderRadius: '50%', color: '#059669' }}><CheckCircle size={24} /></div>
+              <h2 style={{ fontSize: '20px', fontWeight: 'bold', color: '#0f172a' }}>3. Bli med!</h2>
+            </div>
+            <p style={{ fontSize: '16px', color: '#334155', lineHeight: '1.6' }}>Når du finner noe du liker, trykker du på knappen "Jeg blir med!".</p>
+          </div>
+          
+          {/* ENDRET TEKST: */}
+          <div style={{ backgroundColor: '#fffbeb', padding: '32px', borderRadius: '24px', border: '1px solid #fcd34d' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '16px' }}>
               <div style={{ background: '#fff7ed', padding: '12px', borderRadius: '50%', color: '#ea580c' }}><Heart size={24} /></div>
               <h2 style={{ fontSize: '20px', fontWeight: 'bold', color: '#78350f' }}>Laget for å fungere i samråd med pårørende</h2>
             </div>
             <p style={{ fontSize: '16px', color: '#92400e', lineHeight: '1.6' }}>
-              Du kan velge å koble en pårørende til din profil. De kan hjelpe deg med oversikten, men du bestemmer. Du kan når som helst slette koblingen igjen inne på "Min Side".
+              Du kan velge å koble en pårørende til din profil slik at de kan hjelpe deg å holde oversikt. 
+              Dette er helt valgfritt, og du kan når som helst slette koblingen igjen inne på "Min Side".
             </p>
+          </div>
         </div>
       </div>
     </div>
