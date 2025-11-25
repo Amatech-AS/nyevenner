@@ -2,7 +2,6 @@
 import { useState, useEffect } from 'react';
 import { createClient } from '@/utils/supabase/client';
 import Link from 'next/link';
-// HER ER FIKSEN: La til Edit2 og Trash2 i listen
 import { MapPin, Calendar, Search, Users, ArrowRight, Info, CheckCircle, Loader2, Smile, Heart, Plus, Edit2, Trash2 } from 'lucide-react';
 import LoginModal from '@/components/LoginModal';
 
@@ -90,7 +89,11 @@ export default function LandingPage() {
   });
 
   const AktivitetFlis = ({ aktivitet, erMin = false }: { aktivitet: any, erMin?: boolean }) => {
-    const imageUrl = (aktivitet.image_url && aktivitet.image_url.length > 10) ? aktivitet.image_url : getSmartImage(aktivitet.tittel, aktivitet.id);
+    // Fallback bilde hvis databasen er tom
+    const imageUrl = (aktivitet.image_url && aktivitet.image_url.length > 10) 
+      ? aktivitet.image_url 
+      : getSmartImage(aktivitet.tittel, aktivitet.id);
+    
     const erFullt = aktivitet.max_deltakere && aktivitet.deltakere_count >= aktivitet.max_deltakere;
     const erEier = user && user.id === aktivitet.creator_id;
 
@@ -108,9 +111,6 @@ export default function LandingPage() {
                <div style={{ position: 'absolute', top: '8px', left: '8px', right: '8px', display:'flex', justifyContent:'space-between' }}>
                  <div style={{ background: 'rgba(0,0,0,0.7)', backdropFilter:'blur(4px)', padding: '4px 8px', borderRadius: '6px', color: 'white', fontSize: '11px', fontWeight: 'bold', display:'flex', alignItems:'center', gap:'4px' }}>
                     <Calendar size={12}/> {aktivitet.dato ? aktivitet.dato.split(' ')[0] : ''}
-                 </div>
-                 <div style={{ background: 'rgba(0,0,0,0.7)', backdropFilter:'blur(4px)', padding: '4px 8px', borderRadius: '6px', color: 'white', fontSize: '11px', fontWeight: 'bold' }}>
-                    {aktivitet.dato && aktivitet.dato.includes('kl') ? aktivitet.dato.split('kl')[1] : ''}
                  </div>
                </div>
 
@@ -154,35 +154,30 @@ export default function LandingPage() {
 
       <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '24px' }}>
         
-        {/* HEADER */}
         <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '20px', marginBottom: '60px' }}>
-           
-           {/* LAG AKTIVITET (VENSTRE) */}
            <div style={{ flex: '1 1 150px', display: 'flex', justifyContent: 'flex-start' }}>
              <Link href="/ny-aktivitet" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', fontSize: '14px', fontWeight: 'bold', color: '#0f172a', background: 'white', padding: '10px 20px', borderRadius: '99px', border: '1px solid #e2e8f0', textDecoration: 'none', boxShadow: '0 2px 5px rgba(0,0,0,0.05)', whiteSpace: 'nowrap' }}>
                <Plus size={16}/> <span className="hidden sm:inline">Lag aktivitet</span><span className="sm:hidden">Ny</span>
              </Link>
            </div>
 
-           {/* LOGO (MIDTEN) */}
            <div style={{ flex: '0 0 auto', textAlign: 'center' }}>
+             {/* NY LOGO HER */}
              <h1 style={{ fontFamily: 'Times New Roman, serif', fontSize: '48px', fontWeight: '300', color: '#0f172a', lineHeight: '1', letterSpacing: '2px', margin: 0 }}>
                 NyeVenner
              </h1>
              <p style={{ fontSize: '11px', fontWeight: '600', color: '#059669', textTransform: 'uppercase', letterSpacing: '3px', marginTop: '6px' }}>Relasjoner skapes hele livet</p>
            </div>
 
-           {/* MIN SIDE (HØYRE) */}
            <div style={{ flex: '1 1 150px', display: 'flex', justifyContent: 'flex-end' }}>
              {user ? (
-               <Link href="/minside" style={{ fontSize: '14px', fontWeight: 'bold', color: '#475569', background: 'white', padding: '10px 20px', borderRadius: '99px', border: '1px solid #e2e8f0', textDecoration: 'none', boxShadow: '0 2px 5px rgba(0,0,0,0.05)', whiteSpace: 'nowrap' }}>Min Side</Link>
+               <Link href="/minside" style={{ fontSize: '14px', fontWeight: 'bold', color: '#0f172a', background: 'white', padding: '10px 24px', borderRadius: '99px', border: '2px solid #e2e8f0', textDecoration: 'none', boxShadow: '0 4px 10px rgba(0,0,0,0.05)', whiteSpace: 'nowrap' }}>Min Side</Link>
              ) : (
                <Link href="/login" style={{ background: '#0f172a', color: 'white', padding: '10px 24px', borderRadius: '99px', fontWeight: 'bold', fontSize: '14px', border: 'none', cursor: 'pointer', textDecoration: 'none', whiteSpace: 'nowrap' }}>Logg inn</Link>
              )}
            </div>
         </div>
 
-        {/* SØK & SALGSPITCH */}
         <div style={{ maxWidth: '600px', margin: '0 auto 48px auto' }}>
             <div style={{ position: 'relative', marginBottom: '24px' }}>
                 <input placeholder="Søk etter aktivitet..." value={soketekst} onChange={e=>setSoketekst(e.target.value)} style={{ width: '100%', padding: '18px 18px 18px 52px', borderRadius: '16px', border: '2px solid #e2e8f0', fontSize: '16px', fontWeight: '600', outline: 'none', boxShadow: '0 4px 6px rgba(0,0,0,0.02)' }} />
@@ -201,7 +196,6 @@ export default function LandingPage() {
             </div>
         </div>
 
-        {/* FILTER TABS */}
         {user && (
             <div style={{ display: 'flex', justifyContent: 'center', gap: '8px', marginBottom: '40px' }}>
                 <button onClick={() => setKunNaerMeg(false)} style={{ padding: '10px 24px', borderRadius: '99px', fontWeight: 'bold', border: 'none', cursor: 'pointer', fontSize: '14px', transition: 'all 0.2s', backgroundColor: !kunNaerMeg ? '#0f172a' : '#e2e8f0', color: !kunNaerMeg ? 'white' : '#64748b' }}>Vis alle</button>
@@ -223,3 +217,18 @@ export default function LandingPage() {
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: '24px' }}>
               {filtrerteAktiviteter.map(a => <AktivitetFlis key={a.id} aktivitet={a} />)}
             </div>
+            {filtrerteAktiviteter.length === 0 && (
+                <div style={{ textAlign:'center', padding:'40px', color:'#64748b' }}>Fant ingen aktiviteter.</div>
+            )}
+          </>
+        )}
+
+        <div style={{ marginTop: '80px', textAlign: 'center' }}>
+           <Link href="/ny-aktivitet" style={{ display: 'inline-flex', alignItems: 'center', gap: '10px', background: '#10b981', color: 'white', padding: '18px 40px', borderRadius: '99px', fontWeight: 'bold', fontSize: '18px', textDecoration: 'none', boxShadow: '0 15px 30px -5px rgba(16, 185, 129, 0.4)', transition: 'transform 0.2s' }}>
+             + Lag en ny aktivitet
+           </Link>
+        </div>
+      </div>
+    </main>
+  );
+}
