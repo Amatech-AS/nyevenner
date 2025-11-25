@@ -18,6 +18,9 @@ export default function RedigerAktivitetPage() {
   const [ingenBegrensning, setIngenBegrensning] = useState(false);
   const [antallPlasser, setAntallPlasser] = useState('4');
   const [loading, setLoading] = useState(true);
+  
+  // Lagrer original dato for visning
+  const [currentDateStr, setCurrentDateStr] = useState('');
 
   useEffect(() => {
     const load = async () => {
@@ -35,6 +38,7 @@ export default function RedigerAktivitetPage() {
         setStedInput(data.sted);
         setIngenBegrensning(data.max_deltakere === null);
         setAntallPlasser(data.max_deltakere ? String(data.max_deltakere) : '4');
+        setCurrentDateStr(data.dato); // Vis dette til brukeren
       }
       setLoading(false);
     };
@@ -44,7 +48,6 @@ export default function RedigerAktivitetPage() {
   const lagreEndringer = async () => {
     setLoading(true);
     
-    // Formater dato pent hvis endret
     let finalDatoString = undefined;
     if (datoVal && tidVal) {
         const d = new Date(datoVal);
@@ -88,9 +91,10 @@ export default function RedigerAktivitetPage() {
             <input value={tittel} onChange={e => setTittel(e.target.value)} className="w-full p-3 border rounded-xl" />
           </div>
 
-          <div className="bg-yellow-50 p-4 rounded-xl border border-yellow-100 text-sm text-yellow-800 mb-4 flex gap-2">
-            <Info size={16} className="shrink-0 mt-0.5"/>
-            Fyll kun ut dato/tid under hvis du vil endre tidspunktet.
+          <div className="bg-blue-50 p-4 rounded-xl border border-blue-100 text-sm text-blue-800 mb-4 flex flex-col gap-2">
+            <div className="flex items-center gap-2 font-bold"><Clock size={16}/> Nåværende tidspunkt:</div>
+            <div className="text-lg">{currentDateStr}</div>
+            <div className="text-xs opacity-75 mt-1">Fyll ut feltene under KUN hvis du vil endre tidspunktet.</div>
           </div>
 
           <div className="grid md:grid-cols-2 gap-4">
@@ -109,9 +113,9 @@ export default function RedigerAktivitetPage() {
             <input value={stedInput} onChange={e => setStedInput(e.target.value)} className="w-full p-3 border rounded-xl" />
           </div>
 
-          <div className="p-5 bg-blue-50 rounded-xl border border-blue-100">
+          <div className="p-5 bg-slate-50 rounded-xl border border-slate-100">
             <div className="flex items-center gap-4 mb-4">
-              <span className="font-bold text-blue-900 flex items-center gap-2"><Users size={18}/> Antall plasser:</span>
+              <span className="font-bold text-slate-700 flex items-center gap-2"><Users size={18}/> Antall plasser:</span>
               <input type="number" value={antallPlasser} onChange={e => setAntallPlasser(e.target.value)} disabled={ingenBegrensning} className="w-20 p-2 border rounded-lg text-center font-bold bg-white" />
             </div>
             <div className="flex items-center gap-2">
