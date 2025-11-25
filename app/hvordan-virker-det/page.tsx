@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { ArrowLeft, UserPlus, Search, Calendar, Heart, CheckCircle } from 'lucide-react'
+import { ArrowLeft, UserPlus, Search, CheckCircle, Heart } from 'lucide-react'
 
 export default function HvordanVirkerDet() {
   return (
@@ -34,7 +34,7 @@ export default function HvordanVirkerDet() {
               <h2 style={{ fontSize: '20px', fontWeight: 'bold', color: '#0f172a' }}>1. Lag en bruker (Det tar 1 minutt)</h2>
             </div>
             <p style={{ fontSize: '16px', color: '#334155', lineHeight: '1.6' }}>
-              For å melde deg på aktiviteter, må vi vite hvem du er. Trykk på "Logg inn" øverst på siden og velg "Ny bruker". Du trenger bare en e-postadresse.
+              Trykk på "Logg inn" øverst på siden og velg "Ny bruker".
             </p>
           </div>
 
@@ -45,7 +45,7 @@ export default function HvordanVirkerDet() {
               <h2 style={{ fontSize: '20px', fontWeight: 'bold', color: '#0f172a' }}>2. Finn noe du har lyst til</h2>
             </div>
             <p style={{ fontSize: '16px', color: '#334155', lineHeight: '1.6' }}>
-              På forsiden ser du mange firkanter (fliser). Hver flis er en aktivitet, for eksempel en gåtur eller kaffeprat. Trykk på flisen for å lese mer om hvor og når det skjer.
+              På forsiden ser du mange fliser. Hver flis er en aktivitet. Trykk på den for å lese mer.
             </p>
           </div>
 
@@ -56,29 +56,23 @@ export default function HvordanVirkerDet() {
               <h2 style={{ fontSize: '20px', fontWeight: 'bold', color: '#0f172a' }}>3. Bli med!</h2>
             </div>
             <p style={{ fontSize: '16px', color: '#334155', lineHeight: '1.6' }}>
-              Når du finner noe du liker, trykker du på knappen "Jeg blir med!". Da vet arrangøren at du kommer. Du kan også se hvem andre som skal.
+              Når du finner noe du liker, trykker du på knappen "Jeg blir med!". 
             </p>
           </div>
 
-          {/* Steg 4 (Pårørende) */}
+          {/* Pårørende - NY TEKST */}
           <div style={{ backgroundColor: '#fffbeb', padding: '32px', borderRadius: '24px', border: '1px solid #fcd34d' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '16px' }}>
               <div style={{ background: '#fff7ed', padding: '12px', borderRadius: '50%', color: '#ea580c' }}><Heart size={24} /></div>
-              <h2 style={{ fontSize: '20px', fontWeight: 'bold', color: '#78350f' }}>For pårørende</h2>
+              <h2 style={{ fontSize: '20px', fontWeight: 'bold', color: '#78350f' }}>Laget for å fungere i samråd med pårørende</h2>
             </div>
             <p style={{ fontSize: '16px', color: '#92400e', lineHeight: '1.6' }}>
-              Har du en sønn, datter eller venn som vil hjelpe deg? De kan koble seg til din profil. Da kan de se kalenderen din og hjelpe deg å huske avtaler. Du finner koden din inne på "Min Side".
+              Du kan velge å koble en pårørende til din profil slik at de kan hjelpe deg å holde oversikt. 
+              Dette er helt valgfritt, og du kan når som helst slette koblingen igjen inne på "Min Side".
             </p>
           </div>
 
         </div>
-
-        <div style={{ marginTop: '60px', textAlign: 'center' }}>
-           <Link href="/login" style={{ display: 'inline-block', background: '#0f172a', color: 'white', padding: '16px 32px', borderRadius: '99px', fontWeight: 'bold', fontSize: '18px', textDecoration: 'none', boxShadow: '0 10px 20px -5px rgba(0,0,0,0.2)' }}>
-             Kom i gang nå
-           </Link>
-        </div>
-
       </div>
     </div>
   )
