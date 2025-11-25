@@ -2,11 +2,13 @@
 import { useState, useEffect } from 'react';
 import { createClient } from '@/utils/supabase/client';
 import Link from 'next/link';
-import { MapPin, Calendar, Search, Users, ArrowRight, Info, CheckCircle, Loader2, Plus } from 'lucide-react';
+// HER ER FIKSEN: La til Edit2 og Trash2 i listen
+import { MapPin, Calendar, Search, Users, ArrowRight, Info, CheckCircle, Loader2, Smile, Heart, Plus, Edit2, Trash2 } from 'lucide-react';
 import LoginModal from '@/components/LoginModal';
 
 type Aktivitet = { id: string; tittel: string; beskrivelse: string; dato: string; sted: string; postnummer: string; max_deltakere: number | null; image_url: string | null; creator_id: string; }
 
+// --- SMART BILDEVELGER ---
 const imageCollections = {
   jul: [ 'photo-1543589077-47d81606c1bf', 'photo-1512389142860-9c449e58a543', 'photo-1576919228236-a097c32a5cd4', 'photo-1482517967863-00e15c9b4499', 'photo-1513297887119-d46091b24bfa' ],
   tur: [ 'photo-1551632811-561732d1e306', 'photo-1441974231531-c6227db76b6e', 'photo-1478131143081-80f7f84ca84d', 'photo-1501555088652-021faa106b9b', 'photo-1625246333195-78d9c38ad449' ],
@@ -22,6 +24,7 @@ const getSmartImage = (tittel: string, id: string) => {
   else if (t.includes('tur') || t.includes('gå') || t.includes('marka')) collection = imageCollections.tur;
   else if (t.includes('mat') || t.includes('kaffe') || t.includes('vaffel') || t.includes('middag') || t.includes('pizza') || t.includes('date') || t.includes('spise')) collection = imageCollections.mat;
   else if (t.includes('strikk') || t.includes('bok') || t.includes('quiz') || t.includes('kino')) collection = imageCollections.hobby;
+  
   const idSum = id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
   const imageId = collection[idSum % collection.length];
   return `https://images.unsplash.com/${imageId}?q=80&w=400&auto=format&fit=crop`;
@@ -153,13 +156,15 @@ export default function LandingPage() {
         
         {/* HEADER */}
         <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '20px', marginBottom: '60px' }}>
+           
+           {/* LAG AKTIVITET (VENSTRE) */}
            <div style={{ flex: '1 1 150px', display: 'flex', justifyContent: 'flex-start' }}>
              <Link href="/ny-aktivitet" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', fontSize: '14px', fontWeight: 'bold', color: '#0f172a', background: 'white', padding: '10px 20px', borderRadius: '99px', border: '1px solid #e2e8f0', textDecoration: 'none', boxShadow: '0 2px 5px rgba(0,0,0,0.05)', whiteSpace: 'nowrap' }}>
                <Plus size={16}/> <span className="hidden sm:inline">Lag aktivitet</span><span className="sm:hidden">Ny</span>
              </Link>
            </div>
 
-           {/* --- NY/GAMMEL LOGO HER --- */}
+           {/* LOGO (MIDTEN) */}
            <div style={{ flex: '0 0 auto', textAlign: 'center' }}>
              <h1 style={{ fontFamily: 'Times New Roman, serif', fontSize: '48px', fontWeight: '300', color: '#0f172a', lineHeight: '1', letterSpacing: '2px', margin: 0 }}>
                 NyeVenner
@@ -167,6 +172,7 @@ export default function LandingPage() {
              <p style={{ fontSize: '11px', fontWeight: '600', color: '#059669', textTransform: 'uppercase', letterSpacing: '3px', marginTop: '6px' }}>Relasjoner skapes hele livet</p>
            </div>
 
+           {/* MIN SIDE (HØYRE) */}
            <div style={{ flex: '1 1 150px', display: 'flex', justifyContent: 'flex-end' }}>
              {user ? (
                <Link href="/minside" style={{ fontSize: '14px', fontWeight: 'bold', color: '#475569', background: 'white', padding: '10px 20px', borderRadius: '99px', border: '1px solid #e2e8f0', textDecoration: 'none', boxShadow: '0 2px 5px rgba(0,0,0,0.05)', whiteSpace: 'nowrap' }}>Min Side</Link>
@@ -195,6 +201,7 @@ export default function LandingPage() {
             </div>
         </div>
 
+        {/* FILTER TABS */}
         {user && (
             <div style={{ display: 'flex', justifyContent: 'center', gap: '8px', marginBottom: '40px' }}>
                 <button onClick={() => setKunNaerMeg(false)} style={{ padding: '10px 24px', borderRadius: '99px', fontWeight: 'bold', border: 'none', cursor: 'pointer', fontSize: '14px', transition: 'all 0.2s', backgroundColor: !kunNaerMeg ? '#0f172a' : '#e2e8f0', color: !kunNaerMeg ? 'white' : '#64748b' }}>Vis alle</button>
@@ -216,18 +223,3 @@ export default function LandingPage() {
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: '24px' }}>
               {filtrerteAktiviteter.map(a => <AktivitetFlis key={a.id} aktivitet={a} />)}
             </div>
-            {filtrerteAktiviteter.length === 0 && (
-                <div style={{ textAlign:'center', padding:'40px', color:'#64748b' }}>Fant ingen aktiviteter.</div>
-            )}
-          </>
-        )}
-
-        <div style={{ marginTop: '80px', textAlign: 'center' }}>
-           <Link href="/ny-aktivitet" style={{ display: 'inline-flex', alignItems: 'center', gap: '10px', background: '#10b981', color: 'white', padding: '18px 40px', borderRadius: '99px', fontWeight: 'bold', fontSize: '18px', textDecoration: 'none', boxShadow: '0 15px 30px -5px rgba(16, 185, 129, 0.4)', transition: 'transform 0.2s' }}>
-             + Lag en ny aktivitet
-           </Link>
-        </div>
-      </div>
-    </main>
-  );
-}
