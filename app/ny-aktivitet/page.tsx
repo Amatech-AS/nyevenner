@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { createClient } from '@/utils/supabase/client';
 import { useRouter } from 'next/navigation';
 import * as chrono from 'chrono-node';
-import { MapPin, Calendar, Type, FileText, Users, Loader2, ArrowLeft, Clock, Coins } from 'lucide-react';
+import { MapPin, Calendar, Type, FileText, Users, Loader2, ArrowLeft, Clock, Coins, Info } from 'lucide-react';
 
 export default function NyAktivitetPage() {
   const supabase = createClient();
@@ -26,7 +26,6 @@ export default function NyAktivitetPage() {
   
   const [loading, setLoading] = useState(false);
   const [checkingAuth, setCheckingAuth] = useState(true);
-  const [tolketDato, setTolketDato] = useState('');
 
   useEffect(() => {
     const sjekk = async () => {
@@ -45,12 +44,12 @@ export default function NyAktivitetPage() {
     const datoStr = d.toLocaleDateString('no-NO', { weekday: 'long', day: 'numeric', month: 'long' });
     const finalString = `${datoStr.charAt(0).toUpperCase() + datoStr.slice(1)} kl ${tidVal}`;
     
-    // Setter sammen fullt sted
     const fulltSted = `${adresse}, ${postnr} ${poststed}`;
 
     const { data: { user } } = await supabase.auth.getUser();
     if (user) {
-      const { error } = await supabase.from('activities').insert({
+      // 1. LAGRE AKTIVITETEN
+      const { data: nyAktivitet, error } = await supabase.from('activities').insert({
         tittel, 
         beskrivelse, 
         dato: finalString,
@@ -59,9 +58,20 @@ export default function NyAktivitetPage() {
         max_deltakere: ingenBegrensning ? null : parseInt(antallPlasser),
         price: parseInt(pris) || 0,
         creator_id: user.id
-      });
-      if (!error) { router.push('/'); router.refresh(); }
-      else alert(error.message);
+      }).select().single(); // select().single() er viktig for å få ID-en tilbake!
+
+      if (error) {
+        alert(error.message);
+      } else if (nyAktivitet) {
+        // 2. MELD PÅ SKAPEREN AUTOMATISK
+        await supabase.from('participants').insert({
+            activity_id: nyAktivitet.id,
+            user_id: user.id
+        });
+
+        router.push('/'); 
+        router.refresh();
+      }
     }
     setLoading(false);
   };
@@ -93,7 +103,6 @@ export default function NyAktivitetPage() {
             </div>
           </div>
 
-          {/* NYE ADRESSEFELTER */}
           <div>
             <label className="font-bold text-slate-700 mb-2 block flex gap-2 text-sm uppercase tracking-wide"><MapPin size={16}/> Hvor?</label>
             <div className="space-y-3">
@@ -105,15 +114,17 @@ export default function NyAktivitetPage() {
             </div>
           </div>
 
-          {/* BESKRIVELSE (Flyttet opp) */}
           <div>
             <label className="font-bold text-slate-700 mb-2 block flex gap-2 text-sm uppercase tracking-wide"><FileText size={16}/> Beskrivelse</label>
             <p className="text-xs text-slate-500 mb-2">Fortell litt om aktiviteten. Trengs det utstyr? Er det servering?</p>
-            <textarea value={beskrivelse} onChange={e => setBeskrivelse(e.target.value)} rows={4} className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-400" placeholder="Skriv her..." />
+            <textarea value={beskrivelse} onChange={e => setBeskrivelse(e.target.value)} rows={4} className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-400" placeholder="Skriv litt om hva dere skal gjøre..." />
           </div>
 
-          {/* ANTALL PLASSER */}
           <div className="p-5 bg-blue-50 rounded-xl border border-blue-100">
+            <div className="flex gap-3 items-start mb-4 text-blue-800 text-sm">
+               <Info size={20} className="shrink-0 mt-0.5"/>
+               <p>Her bestemmer du hvor mange som kan melde seg på.</p>
+            </div>
             <div className="flex items-center gap-4 mb-4 bg-white p-3 rounded-lg border border-blue-100 w-fit">
               <span className="font-bold text-blue-900 flex items-center gap-2"><Users size={18}/> Antall plasser:</span>
               <input 
@@ -130,7 +141,6 @@ export default function NyAktivitetPage() {
             </div>
           </div>
 
-          {/* PRIS (Flyttet helt ned) */}
           <div className="bg-emerald-50 p-5 rounded-xl border border-emerald-100">
              <label className="font-bold text-emerald-800 mb-2 block flex gap-2 text-sm uppercase tracking-wide"><Coins size={16}/> Koster det noe?</label>
              <div className="flex items-center gap-2">
