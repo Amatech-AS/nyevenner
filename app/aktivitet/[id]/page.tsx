@@ -4,11 +4,18 @@ import { useEffect, useState } from 'react';
 import { createClient } from '@/utils/supabase/client';
 import { useParams, useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
+import Link from 'next/link'; // <--- HER VAR FEILEN (Manglede import)
 import Chat from '@/components/Chat';
 import LoginModal from '@/components/LoginModal';
 import { ArrowLeft, Calendar, MapPin, CheckCircle, XCircle, Users, Loader2, Info, Coins, Edit2, Trash2, Navigation } from 'lucide-react';
 
-// (Samme bilde-logikk som på forsiden for å sikre bilde her også)
+// Laster kartet dynamisk
+const Map = dynamic(() => import('@/components/Map'), { 
+  ssr: false, 
+  loading: () => <div style={{height:'200px', background:'#f1f5f9', display:'flex', alignItems:'center', justifyContent:'center', color:'#94a3b8'}}>Laster kart...</div> 
+});
+
+// --- SMART BILDEVELGER (Samme som på forsiden for å sikre bilde) ---
 const imageCollections = {
   jul: [ 'photo-1543589077-47d81606c1bf', 'photo-1512389142860-9c449e58a543', 'photo-1576919228236-a097c32a5cd4', 'photo-1482517967863-00e15c9b4499', 'photo-1513297887119-d46091b24bfa' ],
   tur: [ 'photo-1551632811-561732d1e306', 'photo-1441974231531-c6227db76b6e', 'photo-1478131143081-80f7f84ca84d', 'photo-1501555088652-021faa106b9b', 'photo-1625246333195-78d9c38ad449' ],
@@ -20,19 +27,16 @@ const imageCollections = {
 const getSmartImage = (tittel: string, id: string) => {
   const t = tittel ? tittel.toLowerCase() : '';
   let collection = imageCollections.default;
+  
   if (t.match(/jul|advent|lucia/)) collection = imageCollections.jul;
   else if (t.match(/tur|gå|marka|skog|fjell|natur/)) collection = imageCollections.tur;
   else if (t.match(/mat|spise|kaffe|vaffel|lunsj|middag|pizza|date/)) collection = imageCollections.mat;
   else if (t.match(/kino|film|strikk|quiz|bok/)) collection = imageCollections.hobby;
   
   const idSum = id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-  return `https://images.unsplash.com/${collection[idSum % collection.length]}?q=80&w=600&auto=format&fit=crop`;
+  const imageId = collection[idSum % collection.length];
+  return `https://images.unsplash.com/${imageId}?q=80&w=600&auto=format&fit=crop`;
 };
-
-const Map = dynamic(() => import('@/components/Map'), { 
-  ssr: false, 
-  loading: () => <div style={{height:'200px', background:'#f1f5f9', display:'flex', alignItems:'center', justifyContent:'center', color:'#94a3b8'}}>Laster kart...</div> 
-});
 
 type AktivitetType = { 
   id: string; 
@@ -101,7 +105,11 @@ export default function AktivitetDetalj() {
 
   const erFullt = aktivitet.max_deltakere ? antall >= aktivitet.max_deltakere : false;
   const erEier = currentUser && currentUser.id === aktivitet.creator_id;
-  const imageUrl = aktivitet.image_url || getSmartImage(aktivitet.tittel, aktivitet.id);
+  
+  // BRUKER SMART-BILDE HVIS DATABASE-BILDE MANGLER
+  const displayImage = (aktivitet.image_url && aktivitet.image_url.length > 10) 
+    ? aktivitet.image_url 
+    : getSmartImage(aktivitet.tittel, aktivitet.id);
 
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#F8FAFC', paddingBottom: '80px', fontFamily: 'system-ui, sans-serif' }}>
@@ -130,7 +138,7 @@ export default function AktivitetDetalj() {
               <div style={{display:'flex', gap:'12px', marginBottom:'24px', flexWrap:'wrap'}}>
                 <span style={{ background: '#eff6ff', color: '#1d4ed8', padding: '6px 12px', borderRadius: '8px', fontSize: '12px', fontWeight: '900', textTransform: 'uppercase', letterSpacing: '1px' }}>Aktivitet</span>
                 <span style={{ background: '#f1f5f9', color: '#475569', padding: '6px 12px', borderRadius: '8px', fontSize: '12px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '1px', display:'flex', alignItems:'center', gap:'6px' }}>
-                    <Calendar size={14}/> {aktivitet.dato.split(',')[0]}
+                    <Calendar size={14}/> {aktivitet.dato ? aktivitet.dato.split(',')[0] : ''}
                 </span>
               </div>
               
@@ -162,7 +170,7 @@ export default function AktivitetDetalj() {
               {/* BILDE */}
               <div style={{ backgroundColor: 'white', padding: '8px', borderRadius: '24px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px rgba(0,0,0,0.05)' }}>
                 <div style={{ width: '100%', aspectRatio: '4/3', borderRadius: '16px', overflow: 'hidden', backgroundColor: '#f1f5f9' }}>
-                  <img src={imageUrl} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" />
+                  <img src={displayImage} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" />
                 </div>
               </div>
 
