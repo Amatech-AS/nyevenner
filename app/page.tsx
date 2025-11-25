@@ -2,12 +2,12 @@
 import { useState, useEffect } from 'react';
 import { createClient } from '@/utils/supabase/client';
 import Link from 'next/link';
-import { MapPin, Calendar, Search, Users, ArrowRight, Info, CheckCircle, Loader2, Smile, Heart, Plus } from 'lucide-react';
+import { MapPin, Calendar, Search, Users, ArrowRight, Info, CheckCircle, Loader2, Heart, Trash2, Edit2, Plus } from 'lucide-react';
 import LoginModal from '@/components/LoginModal';
 
 type Aktivitet = { id: string; tittel: string; beskrivelse: string; dato: string; sted: string; postnummer: string; max_deltakere: number | null; image_url: string | null; creator_id: string; }
 
-// --- SMART BILDEVELGER ---
+// SMART BILDEVELGER (Backup hvis database-bilde mangler)
 const imageCollections = {
   jul: [ 'photo-1543589077-47d81606c1bf', 'photo-1512389142860-9c449e58a543', 'photo-1576919228236-a097c32a5cd4', 'photo-1482517967863-00e15c9b4499', 'photo-1513297887119-d46091b24bfa' ],
   tur: [ 'photo-1551632811-561732d1e306', 'photo-1441974231531-c6227db76b6e', 'photo-1478131143081-80f7f84ca84d', 'photo-1501555088652-021faa106b9b', 'photo-1625246333195-78d9c38ad449' ],
@@ -29,8 +29,8 @@ const getSmartImage = (tittel: string, id: string) => {
 
 export default function LandingPage() {
   const supabase = createClient();
-  const [aktiviteter, setAktiviteter] = useState<Aktivitet[]>([]);
-  const [mineAktiviteter, setMineAktiviteter] = useState<Aktivitet[]>([]);
+  const [aktiviteter, setAktiviteter] = useState<any[]>([]);
+  const [mineAktiviteter, setMineAktiviteter] = useState<any[]>([]);
   const [soketekst, setSoketekst] = useState('');
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<any>(null);
@@ -54,7 +54,10 @@ export default function LandingPage() {
     const { data: alle } = await supabase.from('activities').select('*, participants(count)').order('created_at', { ascending: false }).limit(50);
     
     if (alle) {
-        const formatted = alle.map(a => ({ ...a, deltakere_count: a.participants ? a.participants[0]?.count : 0 }));
+        const formatted = alle.map(a => ({ 
+          ...a, 
+          deltakere_count: a.participants ? a.participants[0]?.count : 0 
+        }));
         setAktiviteter(formatted);
         if (user) {
              const { data: p } = await supabase.from('participants').select('activity_id').eq('user_id', user.id);
@@ -65,11 +68,17 @@ export default function LandingPage() {
     setLoading(false);
   };
 
+  const slettAktivitet = async (id: string) => {
+    if (confirm('Er du sikker på at du vil slette denne aktiviteten?')) {
+      await supabase.from('activities').delete().eq('id', id);
+      fetchData(); 
+    }
+  };
+
   const filtrerteAktiviteter = aktiviteter.filter(a => {
       const matcherSok = soketekst.trim() === '' || 
                          a.tittel.toLowerCase().includes(soketekst.toLowerCase()) || 
                          a.sted.toLowerCase().includes(soketekst.toLowerCase());
-      
       if (!matcherSok) return false;
       if (kunNaerMeg && userPostnummer && a.postnummer) {
           return a.postnummer.substring(0, 2) === userPostnummer.substring(0, 2);
@@ -78,8 +87,11 @@ export default function LandingPage() {
   });
 
   const AktivitetFlis = ({ aktivitet, erMin = false }: { aktivitet: any, erMin?: boolean }) => {
-    const imageUrl = getSmartImage(aktivitet.tittel, aktivitet.id);
+    // FIKS: Bruker database-bilde, ELLER smart-bilde hvis det mangler
+    const imageUrl = aktivitet.image_url || getSmartImage(aktivitet.tittel, aktivitet.id);
+    
     const erFullt = aktivitet.max_deltakere && aktivitet.deltakere_count >= aktivitet.max_deltakere;
+    const erEier = user && user.id === aktivitet.creator_id;
 
     return (
       <div className="group h-full relative">
@@ -92,9 +104,10 @@ export default function LandingPage() {
             <div style={{ height: '160px', width: '100%', position: 'relative', backgroundColor: '#F1F5F9' }}>
                <img src={imageUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: erFullt && !erMin ? 0.5 : 1 }} />
                
+               {/* DATO OG TID OVER BILDET */}
                <div style={{ position: 'absolute', top: '8px', left: '8px', right: '8px', display:'flex', justifyContent:'space-between' }}>
                  <div style={{ background: 'rgba(0,0,0,0.7)', backdropFilter:'blur(4px)', padding: '4px 8px', borderRadius: '6px', color: 'white', fontSize: '11px', fontWeight: 'bold', display:'flex', alignItems:'center', gap:'4px' }}>
-                    <Calendar size={12}/> {aktivitet.dato.split(',')[0]}
+                    <Calendar size={12}/> {aktivitet.dato}
                  </div>
                </div>
 
@@ -121,54 +134,47 @@ export default function LandingPage() {
             </div>
           </div>
         </Link>
+
+        {erEier && (
+          <div style={{ position: 'absolute', top: '8px', right: '8px', display: 'flex', gap: '4px', zIndex: 20 }}>
+            <Link href={`/aktivitet/${aktivitet.id}/rediger`} onClick={(e) => e.stopPropagation()} style={{ background: 'white', padding: '6px', borderRadius: '6px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)', color: '#334155' }}>
+              <Edit2 size={14}/>
+            </Link>
+            <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); slettAktivitet(aktivitet.id); }} style={{ background: 'white', padding: '6px', borderRadius: '6px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)', color: '#ef4444', border: 'none', cursor: 'pointer' }}>
+              <Trash2 size={14}/>
+            </button>
+          </div>
+        )}
       </div>
     );
   };
 
   return (
-    <main style={{ minHeight: '100vh', backgroundColor: '#F8FAFC', paddingBottom: '80px', fontFamily: 'system-ui, sans-serif', overflowX: 'hidden' }}>
+    <main style={{ minHeight: '100vh', backgroundColor: '#F8FAFC', paddingBottom: '80px', fontFamily: 'system-ui, sans-serif' }}>
       {showLoginModal && <LoginModal onClose={() => setShowLoginModal(false)} />}
 
-      <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '20px' }}>
-        
-        {/* HEADER: Mobilvennlig Flex-wrap */}
-        <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '20px', marginBottom: '40px' }}>
-           
-           {/* VENSTRE: Lag Aktivitet */}
-           <div style={{ flex: '1 1 150px', display: 'flex', justifyContent: 'flex-start' }}>
-             <Link href="/ny-aktivitet" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', fontSize: '14px', fontWeight: 'bold', color: '#0f172a', background: 'white', padding: '10px 20px', borderRadius: '99px', border: '1px solid #e2e8f0', textDecoration: 'none', boxShadow: '0 2px 5px rgba(0,0,0,0.05)', whiteSpace: 'nowrap' }}>
-               <Plus size={16}/> <span className="hidden sm:inline">Lag aktivitet</span><span className="sm:hidden">Ny</span>
-             </Link>
-           </div>
-
-           {/* SENTER: LOGO (Med clamp font-size for mobil) */}
-           <div style={{ flex: '0 0 auto', textAlign: 'center' }}>
-             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px' }}>
-                <div style={{ background: '#0f172a', padding: '8px', borderRadius: '10px', color: 'white', display: 'flex', boxShadow: '0 4px 10px rgba(0,0,0,0.1)' }}>
-                    <Smile size={20} strokeWidth={2.5} />
-                </div>
-                <div style={{ textAlign: 'left' }}>
-                    <h1 style={{ fontSize: 'clamp(20px, 5vw, 28px)', fontWeight: '900', color: '#0f172a', lineHeight: '1', letterSpacing: '-0.5px', margin: 0 }}>NyeVenner</h1>
-                    <p style={{ fontSize: '10px', fontWeight: 'bold', color: '#059669', textTransform: 'uppercase', letterSpacing: '1px', marginTop: '2px' }}>Relasjoner skapes hele livet</p>
-                </div>
+      <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '24px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '40px' }}>
+           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+             {/* NY LOGO - KUN TEKST, STØRRE, TYNNERE */}
+             <div>
+               <h1 style={{ fontSize: '36px', fontWeight: '300', color: '#0f172a', lineHeight: '1', letterSpacing: '1px' }}>
+                 NyeVenner
+               </h1>
              </div>
            </div>
-
-           {/* HØYRE: LOGIN */}
-           <div style={{ flex: '1 1 150px', display: 'flex', justifyContent: 'flex-end' }}>
-             {user ? (
-               <Link href="/minside" style={{ fontSize: '14px', fontWeight: 'bold', color: '#475569', background: 'white', padding: '10px 20px', borderRadius: '99px', border: '1px solid #e2e8f0', textDecoration: 'none', boxShadow: '0 2px 5px rgba(0,0,0,0.05)', whiteSpace: 'nowrap' }}>Min Side</Link>
-             ) : (
-               <Link href="/login" style={{ background: '#0f172a', color: 'white', padding: '10px 24px', borderRadius: '99px', fontWeight: 'bold', fontSize: '14px', border: 'none', cursor: 'pointer', textDecoration: 'none', whiteSpace: 'nowrap' }}>Logg inn</Link>
-             )}
-           </div>
+           {user ? (
+             <Link href="/minside" style={{ fontSize: '14px', fontWeight: 'bold', color: '#475569', background: 'white', padding: '10px 20px', borderRadius: '99px', border: '1px solid #e2e8f0', textDecoration: 'none', boxShadow: '0 2px 5px rgba(0,0,0,0.05)' }}>Min Side</Link>
+           ) : (
+             <Link href="/login" style={{ background: '#0f172a', color: 'white', padding: '10px 24px', borderRadius: '99px', fontWeight: 'bold', fontSize: '14px', border: 'none', cursor: 'pointer', textDecoration: 'none' }}>Logg inn</Link>
+           )}
         </div>
 
         {/* SØK & SALGSPITCH */}
         <div style={{ maxWidth: '600px', margin: '0 auto 48px auto' }}>
             <div style={{ position: 'relative', marginBottom: '24px' }}>
-                <input placeholder="Søk etter aktivitet..." value={soketekst} onChange={e=>setSoketekst(e.target.value)} style={{ width: '100%', padding: '16px 16px 16px 48px', borderRadius: '16px', border: '2px solid #e2e8f0', fontSize: '16px', fontWeight: '600', outline: 'none', boxShadow: '0 4px 6px rgba(0,0,0,0.02)' }} />
-                <div style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }}><Search size={20} /></div>
+                <input placeholder="Søk etter aktivitet eller sted..." value={soketekst} onChange={e=>setSoketekst(e.target.value)} style={{ width: '100%', padding: '18px 18px 18px 52px', borderRadius: '16px', border: '2px solid #e2e8f0', fontSize: '16px', fontWeight: '600', outline: 'none', boxShadow: '0 4px 6px rgba(0,0,0,0.02)' }} />
+                <div style={{ position: 'absolute', left: '20px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }}><Search size={20} /></div>
             </div>
 
             <div style={{ background: 'white', border: '1px solid #e2e8f0', borderRadius: '20px', padding: '24px', textAlign: 'center', boxShadow: '0 10px 20px -5px rgba(0,0,0,0.03)' }}>
