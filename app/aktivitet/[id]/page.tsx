@@ -6,7 +6,28 @@ import { useParams, useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import Chat from '@/components/Chat';
 import LoginModal from '@/components/LoginModal';
-import { ArrowLeft, Calendar, MapPin, CheckCircle, XCircle, Users, Loader2, Info, Coins, Edit2, Trash2 } from 'lucide-react';
+import { ArrowLeft, Calendar, MapPin, CheckCircle, XCircle, Users, Loader2, Info, Coins, Edit2, Trash2, Navigation } from 'lucide-react';
+
+// (Samme bilde-logikk som på forsiden for å sikre bilde her også)
+const imageCollections = {
+  jul: [ 'photo-1543589077-47d81606c1bf', 'photo-1512389142860-9c449e58a543', 'photo-1576919228236-a097c32a5cd4', 'photo-1482517967863-00e15c9b4499', 'photo-1513297887119-d46091b24bfa' ],
+  tur: [ 'photo-1551632811-561732d1e306', 'photo-1441974231531-c6227db76b6e', 'photo-1478131143081-80f7f84ca84d', 'photo-1501555088652-021faa106b9b', 'photo-1625246333195-78d9c38ad449' ],
+  mat: [ 'photo-1511920170033-f8396924c348', 'photo-1559339352-11d035aa65de', 'photo-1528605248644-14dd04022da1', 'photo-1515003197210-e0cd71810b5f', 'photo-1590947132387-155cc02f3212' ],
+  hobby: [ 'photo-1606105886470-8b1e10222045', 'photo-1456735190827-d1261f794971', 'photo-1513364776144-60967b0f800f', 'photo-1520032525096-7bd04a94b5a4' ],
+  default: [ 'photo-1511632765486-a01980e01a18', 'photo-1543269865-cbf427effbad', 'photo-1529156069898-49953e39b3ac', 'photo-1523301343968-63214359d56b' ]
+};
+
+const getSmartImage = (tittel: string, id: string) => {
+  const t = tittel ? tittel.toLowerCase() : '';
+  let collection = imageCollections.default;
+  if (t.match(/jul|advent|lucia/)) collection = imageCollections.jul;
+  else if (t.match(/tur|gå|marka|skog|fjell|natur/)) collection = imageCollections.tur;
+  else if (t.match(/mat|spise|kaffe|vaffel|lunsj|middag|pizza|date/)) collection = imageCollections.mat;
+  else if (t.match(/kino|film|strikk|quiz|bok/)) collection = imageCollections.hobby;
+  
+  const idSum = id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+  return `https://images.unsplash.com/${collection[idSum % collection.length]}?q=80&w=600&auto=format&fit=crop`;
+};
 
 const Map = dynamic(() => import('@/components/Map'), { 
   ssr: false, 
@@ -19,7 +40,6 @@ type AktivitetType = {
   beskrivelse: string; 
   dato: string; 
   sted: string; 
-  postnummer: string; // Nytt felt
   max_deltakere: number | null; 
   image_url: string | null;
   price: number;
@@ -81,6 +101,7 @@ export default function AktivitetDetalj() {
 
   const erFullt = aktivitet.max_deltakere ? antall >= aktivitet.max_deltakere : false;
   const erEier = currentUser && currentUser.id === aktivitet.creator_id;
+  const imageUrl = aktivitet.image_url || getSmartImage(aktivitet.tittel, aktivitet.id);
 
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#F8FAFC', paddingBottom: '80px', fontFamily: 'system-ui, sans-serif' }}>
@@ -95,7 +116,6 @@ export default function AktivitetDetalj() {
 
             {erEier && (
                 <div style={{display:'flex', gap:'12px'}}>
-                    {/* Link til redigerings-side (Måtte fikse linken for å matche filstruktur) */}
                     <Link href={`/aktivitet/${id}/rediger`} style={{background:'white', border:'1px solid #e2e8f0', padding:'10px', borderRadius:'50%', cursor:'pointer', color:'#334155', display:'flex', alignItems:'center', justifyContent:'center'}} title="Rediger"><Edit2 size={18}/></Link>
                     <button onClick={slettAktivitet} style={{background:'white', border:'1px solid #fee2e2', padding:'10px', borderRadius:'50%', cursor:'pointer', color:'#ef4444'}} title="Slett"><Trash2 size={18}/></button>
                 </div>
@@ -104,6 +124,7 @@ export default function AktivitetDetalj() {
 
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '32px', alignItems: 'flex-start' }}>
             
+            {/* VENSTRE SIDE */}
             <div style={{ flex: '2', minWidth: '300px', backgroundColor: 'white', padding: '40px', borderRadius: '24px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px rgba(0,0,0,0.02)' }}>
               
               <div style={{display:'flex', gap:'12px', marginBottom:'24px', flexWrap:'wrap'}}>
@@ -135,14 +156,17 @@ export default function AktivitetDetalj() {
               )}
             </div>
 
+            {/* HØYRE SIDE */}
             <div style={{ flex: '1', minWidth: '300px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
               
+              {/* BILDE */}
               <div style={{ backgroundColor: 'white', padding: '8px', borderRadius: '24px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px rgba(0,0,0,0.05)' }}>
                 <div style={{ width: '100%', aspectRatio: '4/3', borderRadius: '16px', overflow: 'hidden', backgroundColor: '#f1f5f9' }}>
-                  <img src={aktivitet.image_url || ''} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" />
+                  <img src={imageUrl} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" />
                 </div>
               </div>
 
+              {/* PRIS */}
               <div style={{ backgroundColor: 'white', padding: '24px', borderRadius: '24px', border: '1px solid #e2e8f0', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center' }}>
                  <p style={{ fontSize: '12px', fontWeight: 'bold', textTransform: 'uppercase', color: '#94a3b8', marginBottom: '4px' }}>Pris per person</p>
                  {aktivitet.price > 0 ? (
@@ -154,6 +178,7 @@ export default function AktivitetDetalj() {
                  )}
               </div>
 
+              {/* STATUS */}
               <div style={{ backgroundColor: 'white', padding: '24px', borderRadius: '24px', border: '1px solid #e2e8f0', textAlign: 'center' }}>
                 <p style={{ fontSize: '12px', fontWeight: 'bold', textTransform: 'uppercase', color: '#94a3b8', marginBottom: '8px' }}>Ledige plasser</p>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', marginBottom: '24px' }}>
@@ -185,14 +210,23 @@ export default function AktivitetDetalj() {
                 )}
               </div>
 
+              {/* KART OG VEIBESKRIVELSE */}
               <div style={{ backgroundColor: 'white', padding: '16px', borderRadius: '24px', border: '1px solid #e2e8f0' }}>
                 <p style={{ fontWeight: 'bold', marginBottom: '12px', display: 'flex', gap: '8px', alignItems:'center', color:'#334155' }}>
                     <div style={{background:'#eff6ff', padding:'8px', borderRadius:'50%'}}><MapPin size={16} color="#2563eb"/></div>
-                    {aktivitet.sted}, {aktivitet.postnummer}
+                    {aktivitet.sted}
                 </p>
-                <div style={{ height: '180px', borderRadius: '16px', overflow: 'hidden', border:'1px solid #e2e8f0' }}>
+                <div style={{ height: '180px', borderRadius: '16px', overflow: 'hidden', border:'1px solid #e2e8f0', marginBottom:'12px' }}>
                     <Map adresse={aktivitet.sted} />
                 </div>
+                <a 
+                  href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(aktivitet.sted)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', width: '100%', padding: '12px', borderRadius: '12px', border: '1px solid #e2e8f0', background: 'white', color: '#334155', fontWeight: 'bold', fontSize: '14px', textDecoration: 'none' }}
+                >
+                  <Navigation size={16} /> Veibeskrivelse
+                </a>
               </div>
 
             </div>
