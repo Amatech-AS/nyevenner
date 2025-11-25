@@ -5,11 +5,10 @@ import "./globals.css";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "NyeVenner - Finn aktiviteter og venner nær deg",
-  description: "Norges nye møteplass for seniorer. Finn gåturer, kaffetreff og sosiale aktiviteter i ditt nabolag. Enkelt, trygt og gratis.",
-  keywords: ["ensomhet", "eldre", "aktiviteter", "turvenn", "besøksvenn", "sosialt", "senior", "trondheim", "oslo", "bergen"],
+  title: "NyeVenner - Relasjoner skapes hele livet",
+  description: "Norges nye møteplass. Finn gåturer, kaffetreff og sosiale aktiviteter i ditt nabolag. Enkelt, trygt og gratis.",
   openGraph: {
-    title: "NyeVenner - Møteplassen for godt voksne",
+    title: "NyeVenner - Relasjoner skapes hele livet",
     description: "Finn noen å finne på noe med. Se aktiviteter i nærheten av deg.",
     type: "website",
     locale: "nb_NO",
