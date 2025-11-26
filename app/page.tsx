@@ -2,10 +2,10 @@
 import { useState, useEffect } from 'react';
 import { createClient } from '@/utils/supabase/client';
 import Link from 'next/link';
-import { MapPin, Calendar, Search, Users, ArrowRight, CheckCircle, Loader2, Smile, Plus, User, LogIn } from 'lucide-react';
+// Fjernet Smile fra importen da den ikke brukes lenger
+import { MapPin, Calendar, Search, Users, ArrowRight, CheckCircle, Loader2, Plus, User, LogIn } from 'lucide-react';
 import LoginModal from '@/components/LoginModal';
 
-// RETTET: Fjernet dobbel 'k' i deltakere_count
 type Aktivitet = { 
   id: string; 
   tittel: string; 
@@ -80,7 +80,6 @@ export default function LandingPage() {
   
   // FILTER STATES
   const [activeFilter, setActiveFilter] = useState<'alle' | 'naer' | 'by' | 'dato'>('alle');
-  // RETTET: Fjernet 'kunNaerMeg' state siden den ikke ble brukt riktig av knappene.
   const [visAntall, setVisAntall] = useState(24);
 
   useEffect(() => {
@@ -121,7 +120,6 @@ export default function LandingPage() {
                          a.sted.toLowerCase().includes(soketekst.toLowerCase());
       if (!matcherSok) return false;
 
-      // RETTET: Forenklet logikk som kun ser på activeFilter
       if (userPostnummer && a.postnummer) {
           if (activeFilter === 'naer') return a.postnummer.substring(0, 3) === userPostnummer.substring(0, 3);
           if (activeFilter === 'by') return a.postnummer.substring(0, 2) === userPostnummer.substring(0, 2);
@@ -231,16 +229,23 @@ export default function LandingPage() {
         {/* HEADER */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '40px', flexWrap: 'wrap', gap: '16px' }}>
            
-           {/* LOGO (Venstre) */}
-           <div style={{ flex: '1', minWidth:'150px', display:'flex', alignItems:'center', gap:'12px' }}>
-             <div style={{ background: '#0f172a', padding: '10px', borderRadius: '12px', color: 'white', display: 'flex', boxShadow: '0 4px 10px rgba(0,0,0,0.1)' }}>
-                <Smile size={24} strokeWidth={2.5} />
-             </div>
-             <div>
-               <h1 style={{ fontSize: '24px', fontWeight: '900', color: '#0f172a', lineHeight: '1', letterSpacing: '-0.5px', margin: 0 }}>NyeVenner</h1>
-               {/* RETTET: Bruker Tailwind hidden/block i className i stedet for ugyldig inline style */}
-               <p style={{ fontSize: '10px', fontWeight: 'bold', color: '#64748b', textTransform: 'uppercase', letterSpacing: '1px', marginTop: '2px' }} className="hidden sm:block">Relasjoner skapes hele livet</p>
-             </div>
+           {/* LOGO (Venstre) - NY: Ren tekst, grønn, moderne */}
+           <div style={{ flex: '1', minWidth:'150px', display:'flex', flexDirection:'column', justifyContent:'center' }}>
+             <Link href="/" style={{ textDecoration: 'none' }}>
+               <h1 style={{ 
+                  fontSize: 'clamp(24px, 5vw, 36px)', // Skalerer automatisk mellom mobil og nett
+                  fontWeight: '900', 
+                  color: '#059669', // Moderne smaragdgrønn
+                  letterSpacing: '-1.5px', // Tight tracking for moderne look
+                  lineHeight: '1', 
+                  margin: 0 
+               }}>
+                  NyeVenner
+               </h1>
+             </Link>
+             <p style={{ fontSize: '10px', fontWeight: '700', color: '#64748b', textTransform: 'uppercase', letterSpacing: '2px', marginTop: '4px' }} className="hidden sm:block">
+               Relasjoner skapes hele livet
+             </p>
            </div>
 
            {/* KNAPPER (Høyre) */}
