@@ -52,6 +52,7 @@ const formatDatoKort = (datoStr: string) => {
     return cleanDate;
 };
 
+// Hjelper for datosortering
 const parseNorwegianDate = (dateStr: string) => {
     const months: { [key: string]: number } = { 'januar': 0, 'februar': 1, 'mars': 2, 'april': 3, 'mai': 4, 'juni': 5, 'juli': 6, 'august': 7, 'september': 8, 'oktober': 9, 'november': 10, 'desember': 11 };
     try {
@@ -76,6 +77,7 @@ export default function LandingPage() {
   const [userPostnummer, setUserPostnummer] = useState<string | null>(null);
   const [showLoginModal, setShowLoginModal] = useState(false);
   
+  // FILTER STATES
   const [activeFilter, setActiveFilter] = useState<'alle' | 'naer' | 'by' | 'dato'>('alle');
   const [visAntall, setVisAntall] = useState(24);
 
@@ -110,6 +112,7 @@ export default function LandingPage() {
     setLoading(false);
   };
 
+  // FILTRERING LOGIKK
   let filtrerteAktiviteter = aktiviteter.filter(a => {
       const matcherSok = soketekst.trim() === '' || 
                          a.tittel.toLowerCase().includes(soketekst.toLowerCase()) || 
@@ -130,6 +133,7 @@ export default function LandingPage() {
   const synligeAktiviteter = filtrerteAktiviteter.slice(0, visAntall);
   const lastFlere = () => setVisAntall(prev => prev + 24);
 
+  // Helper for Filter Button Style
   const getBtnStyle = (isActive: boolean) => ({
     padding: '10px 20px', borderRadius: '99px', fontWeight: 'bold', border: 'none', cursor: 'pointer', fontSize: '14px', transition: 'all 0.2s',
     backgroundColor: isActive ? '#0f172a' : '#e2e8f0',
@@ -141,7 +145,6 @@ export default function LandingPage() {
     const imageUrl = getValidImage(aktivitet);
     const erFullt = aktivitet.max_deltakere && (aktivitet.deltakere_count || 0) >= aktivitet.max_deltakere;
 
-    // VIKTIG RETTELSE HER: Bruker backticks ` og prefetch={false}
     return (
       <Link 
         href={`/aktivitet/${aktivitet.id}`} 
@@ -178,6 +181,7 @@ export default function LandingPage() {
                  onError={(e) => { e.currentTarget.src = 'https://images.unsplash.com/photo-1529156069898-49953e39b3ac?q=80&w=400'; }}
                />
                
+               {/* Dato-badge */}
                <div style={{ 
                    position: 'absolute', top: '12px', left: '12px', 
                    background: 'rgba(255,255,255,0.95)', padding: '6px 10px', 
@@ -228,6 +232,7 @@ export default function LandingPage() {
         {/* HEADER */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '40px', flexWrap: 'wrap', gap: '16px' }}>
            
+           {/* LOGO */}
            <div style={{ flex: '1', minWidth:'150px', display:'flex', flexDirection:'column', justifyContent:'center' }}>
              <Link href="/" style={{ textDecoration: 'none' }}>
                <h1 style={{ 
@@ -241,11 +246,13 @@ export default function LandingPage() {
                   NyeVenner
                </h1>
              </Link>
+             {/* RETTET: Bruker riktig Tailwind-klasse for å skjule på mobil og vise på sm+ */}
              <p style={{ fontSize: '10px', fontWeight: '700', color: '#64748b', textTransform: 'uppercase', letterSpacing: '2px', marginTop: '4px' }} className="hidden sm:block">
                Relasjoner skapes hele livet
              </p>
            </div>
 
+           {/* KNAPPER */}
            <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
              <Link href="/ny-aktivitet" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', fontSize: '13px', fontWeight: 'bold', color: '#0f172a', background: 'white', padding: '10px 16px', borderRadius: '99px', border: '1px solid #e2e8f0', textDecoration: 'none', boxShadow: '0 2px 5px rgba(0,0,0,0.05)', whiteSpace:'nowrap' }}>
                <Plus size={16}/> <span className="hidden sm:inline">Lag ny</span>
@@ -262,6 +269,7 @@ export default function LandingPage() {
            </div>
         </div>
 
+        {/* SØK & PITCH */}
         <div style={{ maxWidth: '600px', margin: '0 auto 48px auto' }}>
             <div style={{ position: 'relative', marginBottom: '24px' }}>
                 <input 
@@ -288,6 +296,7 @@ export default function LandingPage() {
             </div>
         </div>
 
+        {/* FILTER KNAPPER */}
         <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '12px', marginBottom: '40px' }}>
             <button onClick={() => setActiveFilter('alle')} style={getBtnStyle(activeFilter === 'alle')}>Vis alle</button>
             <button onClick={() => setActiveFilter('dato')} style={getBtnStyle(activeFilter === 'dato')}>📅 Etter dato</button>
