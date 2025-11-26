@@ -2,9 +2,10 @@
 import { useState, useEffect } from 'react';
 import { createClient } from '@/utils/supabase/client';
 import Link from 'next/link';
-import { MapPin, Calendar, Search, Users, ArrowRight, Info, CheckCircle, Loader2, Smile, Heart, Plus, LogIn, User } from 'lucide-react';
+import { MapPin, Calendar, Search, Users, ArrowRight, CheckCircle, Loader2, Smile, Plus, User, LogIn } from 'lucide-react';
 import LoginModal from '@/components/LoginModal';
 
+// RETTET: Fjernet dobbel 'k' i deltakere_count
 type Aktivitet = { 
   id: string; 
   tittel: string; 
@@ -15,7 +16,7 @@ type Aktivitet = {
   max_deltakere: number | null; 
   image_url: string | null; 
   creator_id: string; 
-  deltakere_count: number; 
+  deltakere_count?: number; 
 }
 
 // --- SMART BILDEVELGER ---
@@ -45,12 +46,14 @@ const getValidImage = (aktivitet: Aktivitet) => {
   return getSmartImage(aktivitet.tittel, aktivitet.id);
 };
 
+// Format dato for kort
 const formatDatoKort = (datoStr: string) => {
     if (!datoStr) return '';
     const cleanDate = datoStr.replace(/kl.*$/, '').trim(); 
     return cleanDate;
 };
 
+// Hjelper for datosortering
 const parseNorwegianDate = (dateStr: string) => {
     const months: { [key: string]: number } = { 'januar': 0, 'februar': 1, 'mars': 2, 'april': 3, 'mai': 4, 'juni': 5, 'juli': 6, 'august': 7, 'september': 8, 'oktober': 9, 'november': 10, 'desember': 11 };
     try {
@@ -77,7 +80,7 @@ export default function LandingPage() {
   
   // FILTER STATES
   const [activeFilter, setActiveFilter] = useState<'alle' | 'naer' | 'by' | 'dato'>('alle');
-  const [kunNaerMeg, setKunNaerMeg] = useState(false);
+  // RETTET: Fjernet 'kunNaerMeg' state siden den ikke ble brukt riktig av knappene.
   const [visAntall, setVisAntall] = useState(24);
 
   useEffect(() => {
@@ -100,7 +103,6 @@ export default function LandingPage() {
             ...a, 
             deltakere_count: a.participants ? a.participants[0]?.count : 0 
         }));
-        
         setAktiviteter(formatted);
         
         if (user) {
@@ -112,17 +114,14 @@ export default function LandingPage() {
     setLoading(false);
   };
 
-  // FILTRERING LOGIKK (RETTET VARIABELNAVN)
+  // FILTRERING LOGIKK
   let filtrerteAktiviteter = aktiviteter.filter(a => {
       const matcherSok = soketekst.trim() === '' || 
                          a.tittel.toLowerCase().includes(soketekst.toLowerCase()) || 
                          a.sted.toLowerCase().includes(soketekst.toLowerCase());
       if (!matcherSok) return false;
 
-      if (kunNaerMeg && userPostnummer && a.postnummer) {
-          return a.postnummer.substring(0, 2) === userPostnummer.substring(0, 2);
-      }
-      
+      // RETTET: Forenklet logikk som kun ser på activeFilter
       if (userPostnummer && a.postnummer) {
           if (activeFilter === 'naer') return a.postnummer.substring(0, 3) === userPostnummer.substring(0, 3);
           if (activeFilter === 'by') return a.postnummer.substring(0, 2) === userPostnummer.substring(0, 2);
@@ -145,10 +144,9 @@ export default function LandingPage() {
     display: 'flex', alignItems: 'center', gap: '6px', whiteSpace: 'nowrap'
   });
 
-  // --- FLISEN ---
   const AktivitetFlis = ({ aktivitet, erMin = false }: { aktivitet: Aktivitet, erMin?: boolean }) => {
     const imageUrl = getValidImage(aktivitet);
-    const erFullt = aktivitet.max_deltakere ? aktivitet.deltakere_count >= aktivitet.max_deltakere : false;
+    const erFullt = aktivitet.max_deltakere && (aktivitet.deltakere_count || 0) >= aktivitet.max_deltakere;
 
     return (
       <Link href={`/aktivitet/${aktivitet.id}`} style={{ textDecoration: 'none' }} className="group block h-full">
@@ -233,18 +231,19 @@ export default function LandingPage() {
         {/* HEADER */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '40px', flexWrap: 'wrap', gap: '16px' }}>
            
-           {/* LOGO */}
+           {/* LOGO (Venstre) */}
            <div style={{ flex: '1', minWidth:'150px', display:'flex', alignItems:'center', gap:'12px' }}>
              <div style={{ background: '#0f172a', padding: '10px', borderRadius: '12px', color: 'white', display: 'flex', boxShadow: '0 4px 10px rgba(0,0,0,0.1)' }}>
                 <Smile size={24} strokeWidth={2.5} />
              </div>
              <div>
                <h1 style={{ fontSize: '24px', fontWeight: '900', color: '#0f172a', lineHeight: '1', letterSpacing: '-0.5px', margin: 0 }}>NyeVenner</h1>
-               <p style={{ fontSize: '10px', fontWeight: 'bold', color: '#64748b', textTransform: 'uppercase', letterSpacing: '1px', marginTop: '2px', display: 'none', md: {display: 'block'} }}>Relasjoner skapes hele livet</p>
+               {/* RETTET: Bruker Tailwind hidden/block i className i stedet for ugyldig inline style */}
+               <p style={{ fontSize: '10px', fontWeight: 'bold', color: '#64748b', textTransform: 'uppercase', letterSpacing: '1px', marginTop: '2px' }} className="hidden sm:block">Relasjoner skapes hele livet</p>
              </div>
            </div>
 
-           {/* KNAPPER */}
+           {/* KNAPPER (Høyre) */}
            <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
              <Link href="/ny-aktivitet" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', fontSize: '13px', fontWeight: 'bold', color: '#0f172a', background: 'white', padding: '10px 16px', borderRadius: '99px', border: '1px solid #e2e8f0', textDecoration: 'none', boxShadow: '0 2px 5px rgba(0,0,0,0.05)', whiteSpace:'nowrap' }}>
                <Plus size={16}/> <span className="hidden sm:inline">Lag ny</span>
@@ -275,6 +274,7 @@ export default function LandingPage() {
                 />
                 <div style={{ position: 'absolute', left: '20px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }}><Search size={20} /></div>
             </div>
+            
             <div style={{ background: 'white', border: '1px solid #e2e8f0', borderRadius: '20px', padding: '24px', textAlign: 'center', boxShadow: '0 10px 20px -5px rgba(0,0,0,0.03)' }}>
                 <h2 style={{ fontSize: '20px', fontWeight: '900', color: '#0f172a', marginBottom: '8px' }}>Finn fellesskapet du savner</h2>
                 <p style={{ color: '#475569', marginBottom: '16px', lineHeight: '1.5' }}>
