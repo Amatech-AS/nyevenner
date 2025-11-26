@@ -2,13 +2,12 @@
 import { useState, useEffect, useMemo } from 'react';
 import { createClient } from '@/utils/supabase/client';
 import Link from 'next/link';
-import { MapPin, Calendar, Search, Users, ArrowRight, CheckCircle, Loader2, Plus, User, LogIn } from 'lucide-react';
+import { MapPin, Calendar, Search, Users, ArrowRight, CheckCircle, Loader2, Plus, User, LogIn, Edit, Clock } from 'lucide-react';
 import LoginModal from '@/components/LoginModal';
 
 type Aktivitet = { 
   id: string; 
   tittel: string; 
-  beskrivelse: string; 
   dato: string; 
   sted: string; 
   postnummer: string; 
@@ -18,22 +17,27 @@ type Aktivitet = {
   deltakere_count?: number; 
 }
 
-// --- SMART BILDEVELGER ---
+// --- SMART BILDEVELGER (Oppdatert for eldre målgruppe) ---
 const imageCollections = {
-  jul: [ 'photo-1543589077-47d81606c1bf', 'photo-1512389142860-9c449e58a543', 'photo-1576919228236-a097c32a5cd4', 'photo-1482517967863-00e15c9b4499', 'photo-1513297887119-d46091b24bfa' ],
-  tur: [ 'photo-1551632811-561732d1e306', 'photo-1441974231531-c6227db76b6e', 'photo-1478131143081-80f7f84ca84d', 'photo-1501555088652-021faa106b9b', 'photo-1625246333195-78d9c38ad449' ],
-  mat: [ 'photo-1511920170033-f8396924c348', 'photo-1559339352-11d035aa65de', 'photo-1528605248644-14dd04022da1', 'photo-1515003197210-e0cd71810b5f' ],
-  hobby: [ 'photo-1606105886470-8b1e10222045', 'photo-1456735190827-d1261f794971', 'photo-1513364776144-60967b0f800f', 'photo-1520032525096-7bd04a94b5a4' ],
-  default: [ 'photo-1511632765486-a01980e01a18', 'photo-1543269865-cbf427effbad', 'photo-1529156069898-49953e39b3ac', 'photo-1523301343968-63214359d56b' ]
+  // Bilder av eldre som pynter, spiser hyggelig mat, innekos
+  jul: [ 'photo-1576919228236-a097c32a5cd4', 'photo-1543589077-47d81606c1bf', 'photo-1482517967863-00e15c9b4499', 'photo-1607020088219-45922091702f', 'photo-1512474932049-782b704d2627' ],
+  // Bilder av eldre på tur, i skog, gågrupper
+  tur: [ 'photo-1551632811-561732d1e306', 'photo-1441974231531-c6227db76b6e', 'photo-1625246333195-78d9c38ad449', 'photo-1534438327276-14e5300c3a48', 'photo-1478131143081-80f7f84ca84d', 'photo-1501555088652-021faa106b9b' ],
+  // Sosiale lag, kaffe, middag, eldre som ler
+  mat: [ 'photo-1511920170033-f8396924c348', 'photo-1528605248644-14dd04022da1', 'photo-1559339352-11d035aa65de', 'photo-1605280267232-a537cb058e0a', 'photo-1515003197210-e0cd71810b5f', 'photo-1567620905732-2d1ec7ab7445' ],
+  // Strikking, lesing, kultur, kino, spill
+  hobby: [ 'photo-1606105886470-8b1e10222045', 'photo-1513364776144-60967b0f800f', 'photo-1520032525096-7bd04a94b5a4', 'photo-1529156069898-49953e39b3ac', 'photo-1456735190827-d1261f794971', 'photo-1582213782179-e0d53f98f2ca' ],
+  // Generelle bilder av fellesskap og vennskap for eldre
+  default: [ 'photo-1543269865-cbf427effbad', 'photo-1511632765486-a01980e01a18', 'photo-1523301343968-63214359d56b', 'photo-1475483768296-6163e08872a1', 'photo-1573497019940-1c28c88b4f3e' ]
 };
 
 const getSmartImage = (tittel: string, id: string) => {
   const t = tittel.toLowerCase();
   let collection = imageCollections.default;
   if (t.includes('jul') || t.includes('advent') || t.includes('lucia')) collection = imageCollections.jul;
-  else if (t.includes('tur') || t.includes('gå') || t.includes('marka')) collection = imageCollections.tur;
-  else if (t.includes('mat') || t.includes('kaffe') || t.includes('vaffel') || t.includes('middag')) collection = imageCollections.mat;
-  else if (t.includes('strikk') || t.includes('bok') || t.includes('quiz') || t.includes('kino')) collection = imageCollections.hobby;
+  else if (t.includes('tur') || t.includes('gå') || t.includes('marka') || t.includes('natur')) collection = imageCollections.tur;
+  else if (t.includes('mat') || t.includes('kaffe') || t.includes('vaffel') || t.includes('middag') || t.includes('lunsj') || t.includes('vin')) collection = imageCollections.mat;
+  else if (t.includes('strikk') || t.includes('bok') || t.includes('quiz') || t.includes('kino') || t.includes('kultur') || t.includes('spill') || t.includes('bridge')) collection = imageCollections.hobby;
   
   const idSum = id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
   const imageId = collection[idSum % collection.length];
@@ -77,8 +81,8 @@ export default function LandingPage() {
   const [userPostnummer, setUserPostnummer] = useState<string | null>(null);
   const [showLoginModal, setShowLoginModal] = useState(false);
   
-  // FILTER STATES
-  const [activeFilter, setActiveFilter] = useState<'alle' | 'naer' | 'by' | 'dato'>('alle');
+  // ENDRET: Setter 'dato' som standard filter
+  const [activeFilter, setActiveFilter] = useState<'alle' | 'naer' | 'by' | 'dato'>('dato');
   const [visAntall, setVisAntall] = useState(24);
 
   useEffect(() => {
@@ -94,7 +98,13 @@ export default function LandingPage() {
         if (profil) setUserPostnummer(profil.postnummer);
     }
 
-    const { data: alle } = await supabase.from('activities').select('*, participants(count)').order('created_at', { ascending: false }).limit(100);
+    const { data: alle } = await supabase
+        .from('activities')
+        .select('id, tittel, dato, sted, postnummer, max_deltakere, image_url, creator_id, created_at, participants(count)')
+        // Vi sorterer i frontend for å håndtere norsk tekst-dato, så rekkefølgen her er mindre viktig, 
+        // men created_at desc er greit for å få nyeste data
+        .order('created_at', { ascending: false }) 
+        .limit(100);
     
     if (alle) {
         const formatted: Aktivitet[] = alle.map(a => ({ 
@@ -112,7 +122,6 @@ export default function LandingPage() {
     setLoading(false);
   };
 
-  // OPTIMALISERT FILTRERING (useMemo)
   const prosessertListe = useMemo(() => {
       let liste = aktiviteter.filter(a => {
           const matcherSok = soketekst.trim() === '' || 
@@ -127,8 +136,17 @@ export default function LandingPage() {
           return true;
       });
 
+      // Sortering basert på filter. 'dato' er nå standard.
       if (activeFilter === 'dato') {
-        liste.sort((a, b) => parseNorwegianDate(a.dato) - parseNorwegianDate(b.dato));
+        const now = new Date().getTime();
+        liste.sort((a, b) => {
+            const dateA = parseNorwegianDate(a.dato);
+            const dateB = parseNorwegianDate(b.dato);
+            
+            // Logikk: De som har vært (historikk) havner nederst? 
+            // Eller bare ren dato-sortering? Her kjører vi ren dato (nærmeste først).
+            return dateA - dateB;
+        });
       }
       return liste;
   }, [aktiviteter, soketekst, activeFilter, userPostnummer]);
@@ -136,7 +154,6 @@ export default function LandingPage() {
   const synligeAktiviteter = prosessertListe.slice(0, visAntall);
   const lastFlere = () => setVisAntall(prev => prev + 24);
 
-  // Helper for Filter Button Style
   const getBtnStyle = (isActive: boolean) => ({
     padding: '10px 20px', borderRadius: '99px', fontWeight: 'bold', border: 'none', cursor: 'pointer', fontSize: '14px', transition: 'all 0.2s',
     backgroundColor: isActive ? '#0f172a' : '#e2e8f0',
@@ -147,84 +164,99 @@ export default function LandingPage() {
   const AktivitetFlis = ({ aktivitet, erMin = false }: { aktivitet: Aktivitet, erMin?: boolean }) => {
     const imageUrl = getValidImage(aktivitet);
     const erFullt = aktivitet.max_deltakere && (aktivitet.deltakere_count || 0) >= aktivitet.max_deltakere;
+    const erEier = user && user.id === aktivitet.creator_id;
 
     return (
-      <Link 
-        href={`/aktivitet/${aktivitet.id}`} 
-        prefetch={false}
-        className="group block h-full outline-none focus:ring-4 focus:ring-emerald-300 rounded-2xl"
-      >
-        <div style={{
-            backgroundColor: 'white', 
-            borderRadius: '16px', 
-            border: erMin ? '2px solid #10B981' : '1px solid #E2E8F0', 
-            boxShadow: '0 4px 6px rgba(0,0,0,0.05)',
-            overflow: 'hidden', 
-            height: '100%', 
-            display: 'flex', 
-            flexDirection: 'column', 
-            transition: 'transform 0.2s, box-shadow 0.2s',
-            cursor: 'pointer'
-        }} 
-        onMouseEnter={(e) => { 
-            e.currentTarget.style.transform = 'translateY(-5px)'; 
-            e.currentTarget.style.boxShadow = '0 10px 15px -3px rgba(0, 0, 0, 0.1)';
-        }} 
-        onMouseLeave={(e) => { 
-            e.currentTarget.style.transform = 'translateY(0)'; 
-            e.currentTarget.style.boxShadow = '0 4px 6px rgba(0,0,0,0.05)';
-        }}
+      <div className="relative group h-full">
+        <Link 
+            href={`/aktivitet/${aktivitet.id}`} 
+            prefetch={false}
+            className="block h-full outline-none focus:ring-4 focus:ring-emerald-300 rounded-2xl"
         >
-            {/* BILDE */}
-            <div style={{ height: '180px', width: '100%', position: 'relative', backgroundColor: '#F1F5F9' }}>
-               <img 
-                 src={imageUrl} 
-                 alt="" 
-                 loading="lazy"
-                 decoding="async"
-                 style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: erFullt && !erMin ? 0.5 : 1 }} 
-                 onError={(e) => { e.currentTarget.src = 'https://images.unsplash.com/photo-1529156069898-49953e39b3ac?q=80&w=400'; }}
-               />
-               
-               {/* Dato-badge */}
-               <div style={{ 
-                   position: 'absolute', top: '12px', left: '12px', 
-                   background: 'rgba(255,255,255,0.95)', padding: '6px 10px', 
-                   borderRadius: '8px', color: '#0f172a', fontSize: '12px', fontWeight: 'bold', 
-                   display:'flex', alignItems:'center', gap:'6px', boxShadow:'0 2px 4px rgba(0,0,0,0.1)' 
-               }}>
-                  <Calendar size={14} color="#2563eb"/> {formatDatoKort(aktivitet.dato)}
-               </div>
-
-               {erFullt && !erMin && (
-                 <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(255,255,255,0.4)' }}>
-                    <div style={{ background: '#ef4444', color: 'white', padding: '8px 16px', borderRadius: '8px', fontWeight: '900', fontSize:'14px', transform: 'rotate(-5deg)', boxShadow: '0 4px 10px rgba(0,0,0,0.2)' }}>FULLT</div>
-                 </div>
-               )}
-               
-               {erMin && <div style={{ position: 'absolute', bottom: '12px', right: '12px', background: '#10B981', color:'white', padding: '6px 12px', borderRadius: '8px', fontSize: '11px', fontWeight: 'bold', display:'flex', alignItems:'center', gap:'6px', boxShadow:'0 2px 4px rgba(0,0,0,0.1)' }}><CheckCircle size={14}/> Påmeldt</div>}
-            </div>
-
-            {/* TEKST */}
-            <div style={{ padding: '20px', flex: 1, display: 'flex', flexDirection: 'column' }}>
-              <h3 style={{ fontSize: '20px', fontWeight: '900', color: '#1e293b', marginBottom: '6px', lineHeight: '1.2' }}>{aktivitet.tittel}</h3>
-              
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', color: '#64748b', marginBottom: '20px', fontWeight: '600' }}>
-                  <MapPin size={14} /> <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{aktivitet.sted}</span>
-              </div>
-              
-              <div style={{ marginTop: 'auto', paddingTop: '16px', borderTop: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '13px', color: '#475569', fontWeight: '600' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                   <Users size={14} className={erFullt ? 'text-red-500' : 'text-blue-500'} /> 
-                   <span>{aktivitet.deltakere_count} {aktivitet.max_deltakere ? `/ ${aktivitet.max_deltakere}` : ''}</span>
+            <div style={{
+                backgroundColor: 'white', 
+                borderRadius: '16px', 
+                border: erMin ? '2px solid #10B981' : '1px solid #E2E8F0', 
+                boxShadow: '0 4px 6px rgba(0,0,0,0.05)',
+                overflow: 'hidden', 
+                height: '100%', 
+                display: 'flex', 
+                flexDirection: 'column', 
+                transition: 'transform 0.2s, box-shadow 0.2s',
+                cursor: 'pointer'
+            }} 
+            onMouseEnter={(e) => { 
+                e.currentTarget.style.transform = 'translateY(-5px)'; 
+                e.currentTarget.style.boxShadow = '0 10px 15px -3px rgba(0, 0, 0, 0.1)';
+            }} 
+            onMouseLeave={(e) => { 
+                e.currentTarget.style.transform = 'translateY(0)'; 
+                e.currentTarget.style.boxShadow = '0 4px 6px rgba(0,0,0,0.05)';
+            }}
+            >
+                {/* BILDE */}
+                <div style={{ height: '180px', width: '100%', position: 'relative', backgroundColor: '#F1F5F9' }}>
+                <img 
+                    src={imageUrl} 
+                    alt="" 
+                    loading="lazy"
+                    decoding="async"
+                    style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: erFullt && !erMin ? 0.5 : 1 }} 
+                    onError={(e) => { e.currentTarget.src = 'https://images.unsplash.com/photo-1529156069898-49953e39b3ac?q=80&w=400'; }}
+                />
+                
+                {/* Dato-badge */}
+                <div style={{ 
+                    position: 'absolute', top: '12px', left: '12px', 
+                    background: 'rgba(255,255,255,0.95)', padding: '6px 10px', 
+                    borderRadius: '8px', color: '#0f172a', fontSize: '12px', fontWeight: 'bold', 
+                    display:'flex', alignItems:'center', gap:'6px', boxShadow:'0 2px 4px rgba(0,0,0,0.1)' 
+                }}>
+                    <Calendar size={14} color="#2563eb"/> {formatDatoKort(aktivitet.dato)}
                 </div>
-                <div style={{ background:'#f1f5f9', padding:'6px', borderRadius:'50%' }}>
-                    <ArrowRight size={16} color="#cbd5e1" />
+
+                {/* FULLT-MERKE (Vises alltid hvis fullt, uavhengig av om det er min aktivitet eller ikke) */}
+                {erFullt && (
+                    <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(255,255,255,0.4)', zIndex: 10 }}>
+                        <div style={{ background: '#ef4444', color: 'white', padding: '8px 16px', borderRadius: '8px', fontWeight: '900', fontSize:'14px', transform: 'rotate(-5deg)', boxShadow: '0 4px 10px rgba(0,0,0,0.2)' }}>FULLT</div>
+                    </div>
+                )}
+                
+                {erMin && <div style={{ position: 'absolute', bottom: '12px', right: '12px', background: '#10B981', color:'white', padding: '6px 12px', borderRadius: '8px', fontSize: '11px', fontWeight: 'bold', display:'flex', alignItems:'center', gap:'6px', boxShadow:'0 2px 4px rgba(0,0,0,0.1)' }}><CheckCircle size={14}/> Påmeldt</div>}
                 </div>
-              </div>
+
+                {/* TEKST */}
+                <div style={{ padding: '20px', flex: 1, display: 'flex', flexDirection: 'column' }}>
+                <h3 style={{ fontSize: '20px', fontWeight: '900', color: '#1e293b', marginBottom: '6px', lineHeight: '1.2' }}>{aktivitet.tittel}</h3>
+                
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', color: '#64748b', marginBottom: '20px', fontWeight: '600' }}>
+                    <MapPin size={14} /> <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{aktivitet.sted}</span>
+                </div>
+                
+                <div style={{ marginTop: 'auto', paddingTop: '16px', borderTop: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '13px', color: '#475569', fontWeight: '600' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <Users size={14} className={erFullt ? 'text-red-500' : 'text-blue-500'} /> 
+                    <span>{aktivitet.deltakere_count} {aktivitet.max_deltakere ? `/ ${aktivitet.max_deltakere}` : ''}</span>
+                    </div>
+                    <div style={{ background:'#f1f5f9', padding:'6px', borderRadius:'50%' }}>
+                        <ArrowRight size={16} color="#cbd5e1" />
+                    </div>
+                </div>
+                </div>
             </div>
-        </div>
-      </Link>
+        </Link>
+
+        {/* REDIGER KNAPP (Flyter over kortet, men utenfor hovedlinken for å være gyldig HTML) */}
+        {erEier && (
+            <Link 
+                href={`/aktivitet/${aktivitet.id}/rediger`}
+                className="absolute top-3 right-3 z-20 bg-white text-slate-700 hover:text-emerald-600 hover:bg-emerald-50 p-2 rounded-lg border border-slate-200 shadow-md transition-colors"
+                title="Rediger aktivitet"
+            >
+                <Edit size={16} strokeWidth={2.5} />
+            </Link>
+        )}
+      </div>
     );
   };
 
@@ -302,8 +334,9 @@ export default function LandingPage() {
 
         {/* FILTER KNAPPER */}
         <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '12px', marginBottom: '40px' }}>
-            <button onClick={() => setActiveFilter('alle')} style={getBtnStyle(activeFilter === 'alle')}>Vis alle</button>
+            {/* ENDRET: Byttet rekkefølge og logikk for 'Alle' vs 'Dato' */}
             <button onClick={() => setActiveFilter('dato')} style={getBtnStyle(activeFilter === 'dato')}>📅 Etter dato</button>
+            <button onClick={() => setActiveFilter('alle')} style={getBtnStyle(activeFilter === 'alle')}>Vis alle</button>
             {user && (
               <>
                 <button onClick={() => setActiveFilter('naer')} style={getBtnStyle(activeFilter === 'naer')}>📍 Nær meg</button>
