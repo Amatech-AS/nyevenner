@@ -9,7 +9,7 @@ import LoginModal from '@/components/LoginModal';
 import TextToSpeech from '@/components/TextToSpeech';
 import { ArrowLeft, Calendar, MapPin, CheckCircle, XCircle, Users, Loader2, Info, Edit2, Trash2, Navigation, CloudSun } from 'lucide-react';
 
-// --- SMART BILDEVELGER (For å sikre at detaljsiden også har bilder) ---
+// --- SMART BILDEVELGER ---
 const imageCollections = {
   jul: [ 'photo-1543589077-47d81606c1bf', 'photo-1512389142860-9c449e58a543', 'photo-1576919228236-a097c32a5cd4' ],
   tur: [ 'photo-1551632811-561732d1e306', 'photo-1441974231531-c6227db76b6e', 'photo-1478131143081-80f7f84ca84d' ],
@@ -185,18 +185,16 @@ export default function AktivitetDetalj() {
                   </span>
                 </div>
 
-                {/* HER VAR FEILEN SIST - NÅ ER DEN RETTET */}
                 <button
                   onClick={toggle}
                   disabled={erFullt && !erPaameldt}
                   style={{ 
-                      width: '100%', padding: '16px', borderRadius: '12px', fontWeight: 'bold', fontSize: '16px', border: 'none', cursor: 'pointer',
+                      width: '100%', padding: '16px', borderRadius: '12px', fontWeight: 'bold', fontSize: '16px', cursor: 'pointer',
                       display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
                       backgroundColor: erPaameldt ? 'white' : erFullt ? '#e2e8f0' : '#0f172a',
                       color: erPaameldt ? '#ef4444' : erFullt ? '#94a3b8' : 'white',
-                      // Fjernet den doble border-definisjonen
-                      boxShadow: erPaameldt ? 'none' : '0 4px 12px rgba(15, 23, 42, 0.2)',
-                      border: erPaameldt ? '2px solid #fee2e2' : 'none'
+                      border: erPaameldt ? '2px solid #fee2e2' : 'none',
+                      boxShadow: erPaameldt ? 'none' : '0 4px 12px rgba(15, 23, 42, 0.2)'
                   }}
                 >
                   {erPaameldt ? <><XCircle size={20}/> Meld meg av</> : erFullt ? 'Fullt' : <><CheckCircle size={20}/> Jeg blir med!</>}
@@ -225,9 +223,7 @@ export default function AktivitetDetalj() {
                   <Navigation size={16} /> Veibeskrivelse
                 </a>
               </div>
-
             </div>
-
         </div>
       </div>
     </div>
