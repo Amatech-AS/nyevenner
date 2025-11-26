@@ -2,20 +2,20 @@
 import { useState, useEffect, useMemo } from 'react';
 import { createClient } from '@/utils/supabase/client';
 import Link from 'next/link';
-import { MapPin, Calendar, Search, Users, ArrowRight, CheckCircle, Loader2, Plus, User, LogIn } from 'lucide-react';
+import { MapPin, Calendar, Search, Users, ArrowRight, Info, CheckCircle, Loader2, Smile, Heart, Plus, User, LogIn } from 'lucide-react';
 import LoginModal from '@/components/LoginModal';
 
 type Aktivitet = { 
   id: string; 
   tittel: string; 
-  // Beskrivelse fjernet fra type her siden vi ikke trenger den i kortvisning (sparer data)
+  beskrivelse: string; 
   dato: string; 
   sted: string; 
   postnummer: string; 
   max_deltakere: number | null; 
   image_url: string | null; 
   creator_id: string; 
-  deltakere_count?: number; 
+  deltakere_count: number; 
 }
 
 // --- SMART BILDEVELGER ---
@@ -37,8 +37,7 @@ const getSmartImage = (tittel: string, id: string) => {
   
   const idSum = id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
   const imageId = collection[idSum % collection.length];
-  // OPTIMALISERING: Redusert bildestørrelse (w=400) for raskere lasting
-  return `https://images.unsplash.com/${imageId}?q=80&w=400&auto=format&fit=crop`;
+  return `https://images.unsplash.com/${imageId}?q=80&w=600&auto=format&fit=crop`;
 };
 
 const getValidImage = (aktivitet: Aktivitet) => {
@@ -80,6 +79,7 @@ export default function LandingPage() {
   
   // FILTER STATES
   const [activeFilter, setActiveFilter] = useState<'alle' | 'naer' | 'by' | 'dato'>('alle');
+  const [kunNaerMeg, setKunNaerMeg] = useState(false);
   const [visAntall, setVisAntall] = useState(24);
 
   useEffect(() => {
@@ -95,12 +95,7 @@ export default function LandingPage() {
         if (profil) setUserPostnummer(profil.postnummer);
     }
 
-    // OPTIMALISERING: Henter kun nødvendige felter, ikke "beskrivelse" (som kan være lang) eller "select *"
-    const { data: alle } = await supabase
-        .from('activities')
-        .select('id, tittel, dato, sted, postnummer, max_deltakere, image_url, creator_id, created_at, participants(count)')
-        .order('created_at', { ascending: false })
-        .limit(100);
+    const { data: alle } = await supabase.from('activities').select('*, participants(count)').order('created_at', { ascending: false }).limit(100);
     
     if (alle) {
         const formatted: Aktivitet[] = alle.map(a => ({ 
@@ -118,28 +113,29 @@ export default function LandingPage() {
     setLoading(false);
   };
 
-  // OPTIMALISERING: useMemo gjør at vi ikke kjører filtreringen på nytt med mindre dataene endres
-  const prosessertListe = useMemo(() => {
-    let liste = aktiviteter.filter(a => {
-        const matcherSok = soketekst.trim() === '' || 
-                           a.tittel.toLowerCase().includes(soketekst.toLowerCase()) || 
-                           a.sted.toLowerCase().includes(soketekst.toLowerCase());
-        if (!matcherSok) return false;
+  // FILTRERING LOGIKK
+  let filtrerteAktiviteter = aktiviteter.filter(a => {
+      const matcherSok = soketekst.trim() === '' || 
+                         a.tittel.toLowerCase().includes(soketekst.toLowerCase()) || 
+                         a.sted.toLowerCase().includes(soketekst.toLowerCase());
+      if (!matcherSok) return false;
 
-        if (userPostnummer && a.postnummer) {
-            if (activeFilter === 'naer') return a.postnummer.substring(0, 3) === userPostnummer.substring(0, 3);
-            if (activeFilter === 'by') return a.postnummer.substring(0, 2) === userPostnummer.substring(0, 2);
-        }
-        return true;
-    });
+      if (kunNaerMeg && userPostnummer && a.postnummer) {
+          return a.postnummer.substring(0, 2) === userPostnummer.substring(0, 2);
+      }
+      
+      if (userPostnummer && a.postnummer) {
+          if (activeFilter === 'naer') return a.postnummer.substring(0, 3) === userPostnummer.substring(0, 3);
+          if (activeFilter === 'by') return a.postnummer.substring(0, 2) === userPostnummer.substring(0, 2);
+      }
+      return true;
+  });
 
-    if (activeFilter === 'dato') {
-        liste.sort((a, b) => parseNorwegianDate(a.dato) - parseNorwegianDate(b.dato));
-    }
-    return liste;
-  }, [aktiviteter, soketekst, activeFilter, userPostnummer]);
+  if (activeFilter === 'dato') {
+    filtrerteAktiviteter.sort((a, b) => parseNorwegianDate(a.dato) - parseNorwegianDate(b.dato));
+  }
 
-  const synligeAktiviteter = prosessertListe.slice(0, visAntall);
+  const synligeAktiviteter = filtrerteAktiviteter.slice(0, visAntall);
   const lastFlere = () => setVisAntall(prev => prev + 24);
 
   // Helper for Filter Button Style
@@ -152,14 +148,10 @@ export default function LandingPage() {
 
   const AktivitetFlis = ({ aktivitet, erMin = false }: { aktivitet: Aktivitet, erMin?: boolean }) => {
     const imageUrl = getValidImage(aktivitet);
-    const erFullt = aktivitet.max_deltakere && (aktivitet.deltakere_count || 0) >= aktivitet.max_deltakere;
+    const erFullt = aktivitet.max_deltakere && aktivitet.deltakere_count >= aktivitet.max_deltakere;
 
     return (
-      <Link 
-        href={`/aktivitet/${aktivitet.id}`} 
-        prefetch={false}
-        className="group block h-full outline-none focus:ring-4 focus:ring-emerald-300 rounded-2xl"
-      >
+      <Link href={`/aktivitet/${aktivitet.id}`} className="group block h-full text-decoration-none">
         <div style={{
             backgroundColor: 'white', 
             borderRadius: '16px', 
@@ -186,8 +178,6 @@ export default function LandingPage() {
                <img 
                  src={imageUrl} 
                  alt="" 
-                 loading="lazy" // OPTIMALISERING: Laster bildet kun når det trengs
-                 decoding="async"
                  style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: erFullt && !erMin ? 0.5 : 1 }} 
                  onError={(e) => { e.currentTarget.src = 'https://images.unsplash.com/photo-1529156069898-49953e39b3ac?q=80&w=400'; }}
                />
@@ -244,22 +234,15 @@ export default function LandingPage() {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '40px', flexWrap: 'wrap', gap: '16px' }}>
            
            {/* LOGO */}
-           <div style={{ flex: '1', minWidth:'150px', display:'flex', flexDirection:'column', justifyContent:'center' }}>
-             <Link href="/" style={{ textDecoration: 'none' }}>
-               <h1 style={{ 
-                  fontSize: 'clamp(24px, 5vw, 36px)',
-                  fontWeight: '900', 
-                  color: '#059669',
-                  letterSpacing: '-1.5px', 
-                  lineHeight: '1', 
-                  margin: 0 
-               }}>
-                  NyeVenner
-               </h1>
-             </Link>
-             <p style={{ fontSize: '10px', fontWeight: '700', color: '#64748b', textTransform: 'uppercase', letterSpacing: '2px', marginTop: '4px' }} className="hidden sm:block">
-               Relasjoner skapes hele livet
-             </p>
+           <div style={{ flex: '1', minWidth:'150px', display:'flex', alignItems:'center', gap:'12px' }}>
+             <div style={{ background: '#0f172a', padding: '10px', borderRadius: '12px', color: 'white', display: 'flex', boxShadow: '0 4px 10px rgba(0,0,0,0.1)' }}>
+                <Smile size={24} strokeWidth={2.5} />
+             </div>
+             <div>
+               <h1 style={{ fontSize: '24px', fontWeight: '900', color: '#0f172a', lineHeight: '1', letterSpacing: '-0.5px', margin: 0 }}>NyeVenner</h1>
+               {/* RETTET: Fjernet 'md:...' */}
+               <p style={{ fontSize: '10px', fontWeight: 'bold', color: '#64748b', textTransform: 'uppercase', letterSpacing: '1px', marginTop: '2px' }}>Relasjoner skapes hele livet</p>
+             </div>
            </div>
 
            {/* KNAPPER */}
@@ -334,13 +317,13 @@ export default function LandingPage() {
               {synligeAktiviteter.map(a => <AktivitetFlis key={a.id} aktivitet={a} />)}
             </div>
             
-            {synligeAktiviteter.length < prosessertListe.length && (
+            {synligeAktiviteter.length < filtrerteAktiviteter.length && (
                 <div style={{textAlign:'center', marginTop:'40px'}}>
                     <button onClick={lastFlere} style={{background:'white', border:'1px solid #cbd5e1', padding:'12px 24px', borderRadius:'99px', fontWeight:'bold', color:'#475569', cursor:'pointer'}}>Se flere aktiviteter</button>
                 </div>
             )}
 
-            {prosessertListe.length === 0 && (
+            {filtrerteAktiviteter.length === 0 && (
                 <div style={{ textAlign:'center', padding:'40px', color:'#64748b' }}>Fant ingen aktiviteter.</div>
             )}
           </>
