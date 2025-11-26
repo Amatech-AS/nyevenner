@@ -2,23 +2,12 @@
 import { useState, useEffect } from 'react';
 import { createClient } from '@/utils/supabase/client';
 import Link from 'next/link';
-// Sjekk at denne linjen har med alle ikonene som brukes:
 import { MapPin, Calendar, Search, Users, ArrowRight, Info, CheckCircle, Loader2, Smile, Heart, Plus } from 'lucide-react';
 import LoginModal from '@/components/LoginModal';
 
-type Aktivitet = { 
-  id: string; 
-  tittel: string; 
-  beskrivelse: string; 
-  dato: string; 
-  sted: string; 
-  postnummer: string; 
-  max_deltakere: number | null; 
-  image_url: string | null; 
-  creator_id: string; 
-}
+type Aktivitet = { id: string; tittel: string; beskrivelse: string; dato: string; sted: string; postnummer: string; max_deltakere: number | null; image_url: string | null; creator_id: string; }
 
-// --- SMART BILDEVELGER ---
+// --- SMART BILDEVELGER (Nå med høyere oppløsning w=600) ---
 const imageCollections = {
   jul: [ 'photo-1543589077-47d81606c1bf', 'photo-1512389142860-9c449e58a543', 'photo-1576919228236-a097c32a5cd4', 'photo-1482517967863-00e15c9b4499', 'photo-1513297887119-d46091b24bfa' ],
   tur: [ 'photo-1551632811-561732d1e306', 'photo-1441974231531-c6227db76b6e', 'photo-1478131143081-80f7f84ca84d', 'photo-1501555088652-021faa106b9b', 'photo-1625246333195-78d9c38ad449' ],
@@ -39,21 +28,43 @@ const getValidImage = (aktivitet: Aktivitet) => {
   
   const idSum = aktivitet.id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
   const imageId = collection[idSum % collection.length];
-  return `https://images.unsplash.com/${imageId}?q=80&w=400&auto=format&fit=crop`;
+  // Endret fra w=400 til w=600 for skarpere bilder
+  return `https://images.unsplash.com/${imageId}?q=80&w=600&auto=format&fit=crop`;
+};
+
+// --- DATO FORMATERING ---
+const formatDato = (datoString: string) => {
+  if (!datoString) return "";
+  // Deler strengen ved " kl" for å fjerne klokkeslettet i kort-visningen
+  // Eks: "Lørdag 20. desember kl 12:00" -> "Lørdag 20. desember"
+  return datoString.split(' kl')[0]; 
+};
+
+const parseNorwegianDate = (dateStr: string) => {
+    const months = { 'januar': 0, 'februar': 1, 'mars': 2, 'april': 3, 'mai': 4, 'juni': 5, 'juli': 6, 'august': 7, 'september': 8, 'oktober': 9, 'november': 10, 'desember': 11 };
+    try {
+      const dayMatch = dateStr.match(/(\d+)\./);
+      const day = dayMatch ? parseInt(dayMatch[1]) : 1;
+      let month = 11; 
+      for (const [name, index] of Object.entries(months)) { if (dateStr.toLowerCase().includes(name)) { month = index; break; } }
+      const timeMatch = dateStr.match(/kl\s+(\d{2}):(\d{2})/);
+      const hour = timeMatch ? parseInt(timeMatch[1]) : 12;
+      const minute = timeMatch ? parseInt(timeMatch[2]) : 0;
+      return new Date(2025, month, day, hour, minute).getTime();
+    } catch (e) { return 0; }
 };
 
 export default function LandingPage() {
   const supabase = createClient();
-  const [aktiviteter, setAktiviteter] = useState<Aktivitet[]>([]);
-  const [mineAktiviteter, setMineAktiviteter] = useState<Aktivitet[]>([]);
+  const [aktiviteter, setAktiviteter] = useState<any[]>([]);
+  const [mineAktiviteter, setMineAktiviteter] = useState<any[]>([]);
   const [soketekst, setSoketekst] = useState('');
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<any>(null);
   const [userPostnummer, setUserPostnummer] = useState<string | null>(null);
   const [showLoginModal, setShowLoginModal] = useState(false);
-  const [kunNaerMeg, setKunNaerMeg] = useState(false);
   
-  // Paginering
+  const [activeFilter, setActiveFilter] = useState<'alle' | 'naer' | 'by' | 'dato'>('alle');
   const [visAntall, setVisAntall] = useState(24);
 
   useEffect(() => {
@@ -77,6 +88,7 @@ export default function LandingPage() {
           deltakere_count: a.participants ? a.participants[0]?.count : 0 
         }));
         setAktiviteter(formatted);
+        
         if (user) {
              const { data: p } = await supabase.from('participants').select('activity_id').eq('user_id', user.id);
              const mineIds = p?.map(x => x.activity_id) || [];
@@ -86,21 +98,36 @@ export default function LandingPage() {
     setLoading(false);
   };
 
-  const filtrerteAktiviteter = aktiviteter.filter(a => {
+  // FILTRERING
+  let prosessertListe = aktiviteter.filter(a => {
       const matcherSok = soketekst.trim() === '' || 
                          a.tittel.toLowerCase().includes(soketekst.toLowerCase()) || 
                          a.sted.toLowerCase().includes(soketekst.toLowerCase());
       if (!matcherSok) return false;
-      if (kunNaerMeg && userPostnummer && a.postnummer) {
-          return a.postnummer.substring(0, 2) === userPostnummer.substring(0, 2);
+
+      if (userPostnummer && a.postnummer) {
+          if (activeFilter === 'naer') return a.postnummer.substring(0, 3) === userPostnummer.substring(0, 3);
+          if (activeFilter === 'by') return a.postnummer.substring(0, 2) === userPostnummer.substring(0, 2);
       }
       return true;
   });
 
-  const synligeAktiviteter = filtrerteAktiviteter.slice(0, visAntall);
+  if (activeFilter === 'dato') {
+    prosessertListe.sort((a, b) => parseNorwegianDate(a.dato) - parseNorwegianDate(b.dato));
+  }
+
+  const synligeAktiviteter = prosessertListe.slice(0, visAntall);
   const lastFlere = () => setVisAntall(prev => prev + 24);
 
-  // --- KOMPONENT FOR FLISEN ---
+  // Helper for Filter Button Style
+  const getBtnStyle = (isActive: boolean) => ({
+    padding: '10px 20px', borderRadius: '99px', fontWeight: 'bold', border: 'none', cursor: 'pointer', fontSize: '14px', transition: 'all 0.2s',
+    backgroundColor: isActive ? '#0f172a' : '#e2e8f0',
+    color: isActive ? 'white' : '#64748b',
+    display: 'flex', alignItems: 'center', gap: '6px', whiteSpace: 'nowrap'
+  });
+
+  // --- FLISEN ---
   const AktivitetFlis = ({ aktivitet, erMin = false }: { aktivitet: any, erMin?: boolean }) => {
     const imageUrl = getValidImage(aktivitet);
     const erFullt = aktivitet.max_deltakere && aktivitet.deltakere_count >= aktivitet.max_deltakere;
@@ -121,8 +148,9 @@ export default function LandingPage() {
                  onError={(e) => { e.currentTarget.src = 'https://images.unsplash.com/photo-1529156069898-49953e39b3ac?q=80&w=400'; }}
                />
                
+               {/* DATO LAPP (Bruker formatDato her!) */}
                <div style={{ position: 'absolute', top: '8px', left: '8px', background: 'rgba(255,255,255,0.95)', padding: '4px 8px', borderRadius: '6px', color: '#0f172a', fontSize: '11px', fontWeight: 'bold', display:'flex', alignItems:'center', gap:'4px', boxShadow:'0 2px 4px rgba(0,0,0,0.1)' }}>
-                  <Calendar size={12} color="#2563eb"/> {aktivitet.dato.split(',')[0]}
+                  <Calendar size={12} color="#2563eb"/> {formatDato(aktivitet.dato)}
                </div>
 
                {erFullt && !erMin && (
@@ -158,6 +186,7 @@ export default function LandingPage() {
 
       <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '24px' }}>
         
+        {/* HEADER */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '40px', flexWrap: 'wrap', gap: '20px' }}>
            
            {/* Venstre: Lag Aktivitet */}
@@ -202,12 +231,17 @@ export default function LandingPage() {
             </div>
         </div>
 
-        {user && (
-            <div style={{ display: 'flex', justifyContent: 'center', gap: '8px', marginBottom: '40px' }}>
-                <button onClick={() => setKunNaerMeg(false)} style={{ padding: '10px 24px', borderRadius: '99px', fontWeight: 'bold', border: 'none', cursor: 'pointer', fontSize: '14px', transition: 'all 0.2s', backgroundColor: !kunNaerMeg ? '#0f172a' : '#e2e8f0', color: !kunNaerMeg ? 'white' : '#64748b' }}>Vis alle</button>
-                <button onClick={() => setKunNaerMeg(true)} style={{ padding: '10px 24px', borderRadius: '99px', fontWeight: 'bold', border: 'none', cursor: 'pointer', fontSize: '14px', transition: 'all 0.2s', backgroundColor: kunNaerMeg ? '#0f172a' : '#e2e8f0', color: kunNaerMeg ? 'white' : '#64748b' }}>📍 Nær meg</button>
-            </div>
-        )}
+        {/* FILTER KNAPPER */}
+        <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '12px', marginBottom: '40px' }}>
+            <button onClick={() => setActiveFilter('alle')} style={getBtnStyle(activeFilter === 'alle')}>Vis alle</button>
+            <button onClick={() => setActiveFilter('dato')} style={getBtnStyle(activeFilter === 'dato')}>📅 Etter dato</button>
+            {user && (
+              <>
+                <button onClick={() => setActiveFilter('naer')} style={getBtnStyle(activeFilter === 'naer')}>📍 Nær meg</button>
+                <button onClick={() => setActiveFilter('by')} style={getBtnStyle(activeFilter === 'by')}>🏙️ Min by</button>
+              </>
+            )}
+        </div>
 
         {loading ? <div style={{ textAlign: 'center', padding: '40px' }}><Loader2 className="animate-spin"/></div> : (
           <>
@@ -225,7 +259,7 @@ export default function LandingPage() {
               {synligeAktiviteter.map(a => <AktivitetFlis key={a.id} aktivitet={a} />)}
             </div>
             
-            {synligeAktiviteter.length < filtrerteAktiviteter.length && (
+            {synligeAktiviteter.length < prosessertListe.length && (
                 <div style={{textAlign:'center', marginTop:'40px'}}>
                     <button onClick={lastFlere} style={{background:'white', border:'1px solid #cbd5e1', padding:'12px 24px', borderRadius:'99px', fontWeight:'bold', color:'#475569', cursor:'pointer'}}>
                         Se flere aktiviteter
@@ -233,7 +267,7 @@ export default function LandingPage() {
                 </div>
             )}
 
-            {filtrerteAktiviteter.length === 0 && (
+            {prosessertListe.length === 0 && (
                 <div style={{ textAlign:'center', padding:'40px', color:'#64748b' }}>Fant ingen aktiviteter.</div>
             )}
           </>
