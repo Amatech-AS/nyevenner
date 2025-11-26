@@ -1,8 +1,8 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { createClient } from '@/utils/supabase/client';
 import Link from 'next/link';
-import { MapPin, Calendar, Search, Users, ArrowRight, CheckCircle, Loader2, Plus, User, LogIn, Smile } from 'lucide-react';
+import { MapPin, Calendar, Search, Users, ArrowRight, CheckCircle, Loader2, Plus, User, LogIn } from 'lucide-react';
 import LoginModal from '@/components/LoginModal';
 
 type Aktivitet = { 
@@ -15,7 +15,7 @@ type Aktivitet = {
   max_deltakere: number | null; 
   image_url: string | null; 
   creator_id: string; 
-  deltakere_count: number; 
+  deltakere_count?: number; 
 }
 
 // --- SMART BILDEVELGER ---
@@ -37,7 +37,7 @@ const getSmartImage = (tittel: string, id: string) => {
   
   const idSum = id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
   const imageId = collection[idSum % collection.length];
-  return `https://images.unsplash.com/${imageId}?q=80&w=600&auto=format&fit=crop`;
+  return `https://images.unsplash.com/${imageId}?q=80&w=400&auto=format&fit=crop`;
 };
 
 const getValidImage = (aktivitet: Aktivitet) => {
@@ -48,7 +48,8 @@ const getValidImage = (aktivitet: Aktivitet) => {
 // Format dato for kort
 const formatDatoKort = (datoStr: string) => {
     if (!datoStr) return '';
-    return datoStr.replace(/kl.*$/, '').trim(); 
+    const cleanDate = datoStr.replace(/kl.*$/, '').trim(); 
+    return cleanDate;
 };
 
 // Hjelper for datosortering
@@ -75,7 +76,8 @@ export default function LandingPage() {
   const [user, setUser] = useState<any>(null);
   const [userPostnummer, setUserPostnummer] = useState<string | null>(null);
   const [showLoginModal, setShowLoginModal] = useState(false);
-  const [kunNaerMeg, setKunNaerMeg] = useState(false);
+  
+  // FILTER STATES
   const [activeFilter, setActiveFilter] = useState<'alle' | 'naer' | 'by' | 'dato'>('alle');
   const [visAntall, setVisAntall] = useState(24);
 
@@ -100,6 +102,7 @@ export default function LandingPage() {
             deltakere_count: a.participants ? a.participants[0]?.count : 0 
         }));
         setAktiviteter(formatted);
+        
         if (user) {
              const { data: p } = await supabase.from('participants').select('activity_id').eq('user_id', user.id);
              const mineIds = p?.map(x => x.activity_id) || [];
@@ -109,29 +112,31 @@ export default function LandingPage() {
     setLoading(false);
   };
 
-  const filtrerteAktiviteter = aktiviteter.filter(a => {
-      const matcherSok = soketekst.trim() === '' || 
-                         a.tittel.toLowerCase().includes(soketekst.toLowerCase()) || 
-                         a.sted.toLowerCase().includes(soketekst.toLowerCase());
-      if (!matcherSok) return false;
+  // OPTIMALISERT FILTRERING (useMemo)
+  const prosessertListe = useMemo(() => {
+      let liste = aktiviteter.filter(a => {
+          const matcherSok = soketekst.trim() === '' || 
+                             a.tittel.toLowerCase().includes(soketekst.toLowerCase()) || 
+                             a.sted.toLowerCase().includes(soketekst.toLowerCase());
+          if (!matcherSok) return false;
 
-      if (kunNaerMeg && userPostnummer && a.postnummer) {
-          return a.postnummer.substring(0, 2) === userPostnummer.substring(0, 2);
+          if (userPostnummer && a.postnummer) {
+              if (activeFilter === 'naer') return a.postnummer.substring(0, 3) === userPostnummer.substring(0, 3);
+              if (activeFilter === 'by') return a.postnummer.substring(0, 2) === userPostnummer.substring(0, 2);
+          }
+          return true;
+      });
+
+      if (activeFilter === 'dato') {
+        liste.sort((a, b) => parseNorwegianDate(a.dato) - parseNorwegianDate(b.dato));
       }
-      if (userPostnummer && a.postnummer) {
-          if (activeFilter === 'naer') return a.postnummer.substring(0, 3) === userPostnummer.substring(0, 3);
-          if (activeFilter === 'by') return a.postnummer.substring(0, 2) === userPostnummer.substring(0, 2);
-      }
-      return true;
-  });
+      return liste;
+  }, [aktiviteter, soketekst, activeFilter, userPostnummer]);
 
-  if (activeFilter === 'dato') {
-    filtrerteAktiviteter.sort((a, b) => parseNorwegianDate(a.dato) - parseNorwegianDate(b.dato));
-  }
-
-  const synligeAktiviteter = filtrerteAktiviteter.slice(0, visAntall);
+  const synligeAktiviteter = prosessertListe.slice(0, visAntall);
   const lastFlere = () => setVisAntall(prev => prev + 24);
 
+  // Helper for Filter Button Style
   const getBtnStyle = (isActive: boolean) => ({
     padding: '10px 20px', borderRadius: '99px', fontWeight: 'bold', border: 'none', cursor: 'pointer', fontSize: '14px', transition: 'all 0.2s',
     backgroundColor: isActive ? '#0f172a' : '#e2e8f0',
@@ -141,10 +146,14 @@ export default function LandingPage() {
 
   const AktivitetFlis = ({ aktivitet, erMin = false }: { aktivitet: Aktivitet, erMin?: boolean }) => {
     const imageUrl = getValidImage(aktivitet);
-    const erFullt = aktivitet.max_deltakere ? aktivitet.deltakere_count >= aktivitet.max_deltakere : false;
+    const erFullt = aktivitet.max_deltakere && (aktivitet.deltakere_count || 0) >= aktivitet.max_deltakere;
 
     return (
-      <Link href={`/aktivitet/${aktivitet.id}`} className="group block h-full text-decoration-none">
+      <Link 
+        href={`/aktivitet/${aktivitet.id}`} 
+        prefetch={false}
+        className="group block h-full outline-none focus:ring-4 focus:ring-emerald-300 rounded-2xl"
+      >
         <div style={{
             backgroundColor: 'white', 
             borderRadius: '16px', 
@@ -166,15 +175,24 @@ export default function LandingPage() {
             e.currentTarget.style.boxShadow = '0 4px 6px rgba(0,0,0,0.05)';
         }}
         >
+            {/* BILDE */}
             <div style={{ height: '180px', width: '100%', position: 'relative', backgroundColor: '#F1F5F9' }}>
                <img 
                  src={imageUrl} 
                  alt="" 
+                 loading="lazy"
+                 decoding="async"
                  style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: erFullt && !erMin ? 0.5 : 1 }} 
                  onError={(e) => { e.currentTarget.src = 'https://images.unsplash.com/photo-1529156069898-49953e39b3ac?q=80&w=400'; }}
                />
                
-               <div style={{ position: 'absolute', top: '12px', left: '12px', background: 'rgba(255,255,255,0.95)', padding: '6px 10px', borderRadius: '8px', color: '#0f172a', fontSize: '12px', fontWeight: 'bold', display:'flex', alignItems:'center', gap:'6px', boxShadow:'0 2px 4px rgba(0,0,0,0.1)' }}>
+               {/* Dato-badge */}
+               <div style={{ 
+                   position: 'absolute', top: '12px', left: '12px', 
+                   background: 'rgba(255,255,255,0.95)', padding: '6px 10px', 
+                   borderRadius: '8px', color: '#0f172a', fontSize: '12px', fontWeight: 'bold', 
+                   display:'flex', alignItems:'center', gap:'6px', boxShadow:'0 2px 4px rgba(0,0,0,0.1)' 
+               }}>
                   <Calendar size={14} color="#2563eb"/> {formatDatoKort(aktivitet.dato)}
                </div>
 
@@ -187,6 +205,7 @@ export default function LandingPage() {
                {erMin && <div style={{ position: 'absolute', bottom: '12px', right: '12px', background: '#10B981', color:'white', padding: '6px 12px', borderRadius: '8px', fontSize: '11px', fontWeight: 'bold', display:'flex', alignItems:'center', gap:'6px', boxShadow:'0 2px 4px rgba(0,0,0,0.1)' }}><CheckCircle size={14}/> Påmeldt</div>}
             </div>
 
+            {/* TEKST */}
             <div style={{ padding: '20px', flex: 1, display: 'flex', flexDirection: 'column' }}>
               <h3 style={{ fontSize: '20px', fontWeight: '900', color: '#1e293b', marginBottom: '6px', lineHeight: '1.2' }}>{aktivitet.tittel}</h3>
               
@@ -216,25 +235,32 @@ export default function LandingPage() {
       <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '24px' }}>
         
         {/* HEADER */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '40px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '40px', flexWrap: 'wrap', gap: '16px' }}>
            
-           {/* Venstre: Logo (Sentrert vertikalt) */}
-           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-             <div style={{ background: '#0f172a', padding: '10px', borderRadius: '12px', color: 'white', display: 'flex', boxShadow: '0 4px 10px rgba(0,0,0,0.1)' }}>
-                <Smile size={24} strokeWidth={2.5} />
-             </div>
-             <div>
-               <h1 style={{ fontSize: '24px', fontWeight: '900', color: '#0f172a', lineHeight: '1', letterSpacing: '-0.5px', margin: 0 }}>NyeVenner</h1>
-               <p style={{ fontSize: '10px', fontWeight: 'bold', color: '#64748b', textTransform: 'uppercase', letterSpacing: '1px', marginTop: '2px' }} className="hidden sm:block">Relasjoner skapes hele livet</p>
-             </div>
+           {/* LOGO */}
+           <div style={{ flex: '1', minWidth:'150px', display:'flex', flexDirection:'column', justifyContent:'center' }}>
+             <Link href="/" style={{ textDecoration: 'none' }}>
+               <h1 style={{ 
+                  fontSize: 'clamp(24px, 5vw, 36px)',
+                  fontWeight: '900', 
+                  color: '#059669', // Grønn logo
+                  letterSpacing: '-1.5px', 
+                  lineHeight: '1', 
+                  margin: 0 
+               }}>
+                  NyeVenner
+               </h1>
+             </Link>
+             <p style={{ fontSize: '10px', fontWeight: '700', color: '#64748b', textTransform: 'uppercase', letterSpacing: '2px', marginTop: '4px' }} className="hidden sm:block">
+               Relasjoner skapes hele livet
+             </p>
            </div>
 
-           {/* Høyre: Knapper samlet */}
+           {/* KNAPPER */}
            <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
              <Link href="/ny-aktivitet" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', fontSize: '13px', fontWeight: 'bold', color: '#0f172a', background: 'white', padding: '10px 16px', borderRadius: '99px', border: '1px solid #e2e8f0', textDecoration: 'none', boxShadow: '0 2px 5px rgba(0,0,0,0.05)', whiteSpace:'nowrap' }}>
                <Plus size={16}/> <span className="hidden sm:inline">Lag ny</span>
              </Link>
-             
              {user ? (
                <Link href="/minside" style={{ fontSize: '13px', fontWeight: 'bold', color: 'white', background: '#0f172a', padding: '10px 20px', borderRadius: '99px', textDecoration: 'none', whiteSpace:'nowrap', display:'flex', alignItems:'center', gap:'6px' }}>
                  <User size={16} /> Min Side
@@ -251,9 +277,8 @@ export default function LandingPage() {
         <div style={{ maxWidth: '600px', margin: '0 auto 48px auto' }}>
             <div style={{ position: 'relative', marginBottom: '24px' }}>
                 <input 
-                  type="search" 
-                  name="q-search" 
-                  id="search-field"
+                  name="search-q"
+                  id="site-search" 
                   autoComplete="off"
                   placeholder="Søk etter aktivitet eller sted..." 
                   value={soketekst} 
@@ -303,13 +328,13 @@ export default function LandingPage() {
               {synligeAktiviteter.map(a => <AktivitetFlis key={a.id} aktivitet={a} />)}
             </div>
             
-            {synligeAktiviteter.length < filtrerteAktiviteter.length && (
+            {synligeAktiviteter.length < prosessertListe.length && (
                 <div style={{textAlign:'center', marginTop:'40px'}}>
                     <button onClick={lastFlere} style={{background:'white', border:'1px solid #cbd5e1', padding:'12px 24px', borderRadius:'99px', fontWeight:'bold', color:'#475569', cursor:'pointer'}}>Se flere aktiviteter</button>
                 </div>
             )}
 
-            {filtrerteAktiviteter.length === 0 && (
+            {prosessertListe.length === 0 && (
                 <div style={{ textAlign:'center', padding:'40px', color:'#64748b' }}>Fant ingen aktiviteter.</div>
             )}
           </>
