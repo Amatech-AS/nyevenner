@@ -2,10 +2,21 @@
 import { useState, useEffect } from 'react';
 import { createClient } from '@/utils/supabase/client';
 import Link from 'next/link';
-import { MapPin, Calendar, Search, Users, ArrowRight, Info, CheckCircle, Loader2, Smile, Heart, Plus, LogIn, User } from 'lucide-react';
+import { MapPin, Calendar, Search, Users, ArrowRight, Info, CheckCircle, Loader2, Smile, Heart, Plus, User, LogIn } from 'lucide-react';
 import LoginModal from '@/components/LoginModal';
 
-type Aktivitet = { id: string; tittel: string; beskrivelse: string; dato: string; sted: string; postnummer: string; max_deltakere: number | null; image_url: string | null; creator_id: string; deltakkere_count?: number; }
+type Aktivitet = { 
+  id: string; 
+  tittel: string; 
+  beskrivelse: string; 
+  dato: string; 
+  sted: string; 
+  postnummer: string; 
+  max_deltakere: number | null; 
+  image_url: string | null; 
+  creator_id: string; 
+  deltakere_count: number; 
+}
 
 // --- SMART BILDEVELGER ---
 const imageCollections = {
@@ -56,15 +67,14 @@ const parseNorwegianDate = (dateStr: string) => {
 
 export default function LandingPage() {
   const supabase = createClient();
-  const [aktiviteter, setAktiviteter] = useState<any[]>([]);
-  const [mineAktiviteter, setMineAktiviteter] = useState<any[]>([]);
+  const [aktiviteter, setAktiviteter] = useState<Aktivitet[]>([]);
+  const [mineAktiviteter, setMineAktiviteter] = useState<Aktivitet[]>([]);
   const [soketekst, setSoketekst] = useState('');
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<any>(null);
   const [userPostnummer, setUserPostnummer] = useState<string | null>(null);
   const [showLoginModal, setShowLoginModal] = useState(false);
   
-  // FILTER STATES
   const [activeFilter, setActiveFilter] = useState<'alle' | 'naer' | 'by' | 'dato'>('alle');
   const [kunNaerMeg, setKunNaerMeg] = useState(false);
   const [visAntall, setVisAntall] = useState(24);
@@ -85,11 +95,12 @@ export default function LandingPage() {
     const { data: alle } = await supabase.from('activities').select('*, participants(count)').order('created_at', { ascending: false }).limit(100);
     
     if (alle) {
-        const formatted = alle.map(a => ({ 
+        const formatted: Aktivitet[] = alle.map(a => ({ 
             ...a, 
             deltakere_count: a.participants ? a.participants[0]?.count : 0 
         }));
         setAktiviteter(formatted);
+        
         if (user) {
              const { data: p } = await supabase.from('participants').select('activity_id').eq('user_id', user.id);
              const mineIds = p?.map(x => x.activity_id) || [];
@@ -99,8 +110,7 @@ export default function LandingPage() {
     setLoading(false);
   };
 
-  // --- FILTRERING LOGIKK (Her var feilen, nå heter den filtrerteAktiviteter konsekvent) ---
-  const filtrerteAktiviteter = aktiviteter.filter(a => {
+  let prosessertListe = aktiviteter.filter(a => {
       const matcherSok = soketekst.trim() === '' || 
                          a.tittel.toLowerCase().includes(soketekst.toLowerCase()) || 
                          a.sted.toLowerCase().includes(soketekst.toLowerCase());
@@ -118,13 +128,12 @@ export default function LandingPage() {
   });
 
   if (activeFilter === 'dato') {
-    filtrerteAktiviteter.sort((a, b) => parseNorwegianDate(a.dato) - parseNorwegianDate(b.dato));
+    prosessertListe.sort((a, b) => parseNorwegianDate(a.dato) - parseNorwegianDate(b.dato));
   }
 
-  const synligeAktiviteter = filtrerteAktiviteter.slice(0, visAntall);
+  const synligeAktiviteter = prosessertListe.slice(0, visAntall);
   const lastFlere = () => setVisAntall(prev => prev + 24);
 
-  // Helper for Filter Button Style
   const getBtnStyle = (isActive: boolean) => ({
     padding: '10px 20px', borderRadius: '99px', fontWeight: 'bold', border: 'none', cursor: 'pointer', fontSize: '14px', transition: 'all 0.2s',
     backgroundColor: isActive ? '#0f172a' : '#e2e8f0',
@@ -132,13 +141,12 @@ export default function LandingPage() {
     display: 'flex', alignItems: 'center', gap: '6px', whiteSpace: 'nowrap'
   });
 
-  // --- FLISEN ---
-  const AktivitetFlis = ({ aktivitet, erMin = false }: { aktivitet: any, erMin?: boolean }) => {
+  const AktivitetFlis = ({ aktivitet, erMin = false }: { aktivitet: Aktivitet, erMin?: boolean }) => {
     const imageUrl = getValidImage(aktivitet);
-    const erFullt = aktivitet.max_deltakere && aktivitet.deltakere_count >= aktivitet.max_deltakere;
+    const erFullt = aktivitet.max_deltakere ? aktivitet.deltakere_count >= aktivitet.max_deltakere : false;
 
     return (
-      <Link href={`/aktivitet/${aktivitet.id}`} className="group block h-full text-decoration-none">
+      <Link href={`/aktivitet/${aktivitet.id}`} style={{ textDecoration: 'none' }} className="group block h-full">
         <div style={{
             backgroundColor: 'white', 
             borderRadius: '16px', 
@@ -168,7 +176,12 @@ export default function LandingPage() {
                  onError={(e) => { e.currentTarget.src = 'https://images.unsplash.com/photo-1529156069898-49953e39b3ac?q=80&w=400'; }}
                />
                
-               <div style={{ position: 'absolute', top: '12px', left: '12px', background: 'rgba(255,255,255,0.95)', padding: '6px 10px', borderRadius: '8px', color: '#0f172a', fontSize: '12px', fontWeight: 'bold', display:'flex', alignItems:'center', gap:'6px', boxShadow:'0 2px 4px rgba(0,0,0,0.1)' }}>
+               <div style={{ 
+                   position: 'absolute', top: '12px', left: '12px', 
+                   background: 'rgba(255,255,255,0.95)', padding: '6px 10px', 
+                   borderRadius: '8px', color: '#0f172a', fontSize: '12px', fontWeight: 'bold', 
+                   display:'flex', alignItems:'center', gap:'6px', boxShadow:'0 2px 4px rgba(0,0,0,0.1)' 
+               }}>
                   <Calendar size={14} color="#2563eb"/> {formatDatoKort(aktivitet.dato)}
                </div>
 
@@ -210,22 +223,20 @@ export default function LandingPage() {
       <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '24px' }}>
         
         {/* HEADER */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '40px', gap: '16px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '40px', flexWrap: 'wrap', gap: '16px' }}>
            
-           {/* LOGO (Venstre) */}
-           <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1 }}>
+           <div style={{ flex: '1', minWidth:'150px', display:'flex', alignItems:'center', gap:'12px' }}>
              <div style={{ background: '#0f172a', padding: '10px', borderRadius: '12px', color: 'white', display: 'flex', boxShadow: '0 4px 10px rgba(0,0,0,0.1)' }}>
                 <Smile size={24} strokeWidth={2.5} />
              </div>
              <div>
                <h1 style={{ fontSize: '24px', fontWeight: '900', color: '#0f172a', lineHeight: '1', letterSpacing: '-0.5px', margin: 0 }}>NyeVenner</h1>
-               <p style={{ fontSize: '10px', fontWeight: 'bold', color: '#64748b', textTransform: 'uppercase', letterSpacing: '1px', marginTop: '2px', display: 'none', md: {display: 'block'} }}>Relasjoner skapes hele livet</p>
+               {/* RETTET: Fjernet 'md' syntax, bruker display block alltid siden den er liten */}
+               <p style={{ fontSize: '10px', fontWeight: 'bold', color: '#64748b', textTransform: 'uppercase', letterSpacing: '1px', marginTop: '2px' }}>Relasjoner skapes hele livet</p>
              </div>
            </div>
 
-           {/* KNAPPER (Høyre) */}
            <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-             
              <Link href="/ny-aktivitet" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', fontSize: '13px', fontWeight: 'bold', color: '#0f172a', background: 'white', padding: '10px 16px', borderRadius: '99px', border: '1px solid #e2e8f0', textDecoration: 'none', boxShadow: '0 2px 5px rgba(0,0,0,0.05)', whiteSpace:'nowrap' }}>
                <Plus size={16}/> <span className="hidden sm:inline">Lag ny</span>
              </Link>
@@ -258,7 +269,7 @@ export default function LandingPage() {
             </div>
             
             <div style={{ background: 'white', border: '1px solid #e2e8f0', borderRadius: '20px', padding: '24px', textAlign: 'center', boxShadow: '0 10px 20px -5px rgba(0,0,0,0.03)' }}>
-                <h2 style={{ fontSize: '20px', fontWeight: '900', color: '#0f172a', marginBottom: '8px' }}>Relasjoner skapes hele livet</h2>
+                <h2 style={{ fontSize: '20px', fontWeight: '900', color: '#0f172a', marginBottom: '8px' }}>Finn fellesskapet du savner</h2>
                 <p style={{ color: '#475569', marginBottom: '16px', lineHeight: '1.5' }}>
                     NyeVenner gjør det enkelt å finne noen å dele hverdagen med. 
                     Turer, kaffe-treff og hyggelige folk i ditt nabolag.
@@ -299,7 +310,9 @@ export default function LandingPage() {
             
             {synligeAktiviteter.length < filtrerteAktiviteter.length && (
                 <div style={{textAlign:'center', marginTop:'40px'}}>
-                    <button onClick={lastFlere} style={{background:'white', border:'1px solid #cbd5e1', padding:'12px 24px', borderRadius:'99px', fontWeight:'bold', color:'#475569', cursor:'pointer'}}>Se flere aktiviteter</button>
+                    <button onClick={lastFlere} style={{background:'white', border:'1px solid #cbd5e1', padding:'12px 24px', borderRadius:'99px', fontWeight:'bold', color:'#475569', cursor:'pointer'}}>
+                        Se flere aktiviteter
+                    </button>
                 </div>
             )}
 
