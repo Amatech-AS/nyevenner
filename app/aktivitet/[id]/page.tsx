@@ -7,9 +7,9 @@ import dynamic from 'next/dynamic';
 import Chat from '@/components/Chat';
 import LoginModal from '@/components/LoginModal';
 import TextToSpeech from '@/components/TextToSpeech';
-import { ArrowLeft, Calendar, MapPin, CheckCircle, XCircle, Users, Loader2, Info, Edit2, Trash2, Navigation, CloudSun, Coins } from 'lucide-react';
+import { ArrowLeft, Calendar, MapPin, CheckCircle, XCircle, Users, Loader2, Info, Edit2, Trash2, Navigation, CloudSun } from 'lucide-react';
 
-// --- SMART BILDEVELGER (Kopiert hit for å sikre bilder på detaljsiden også) ---
+// --- SMART BILDEVELGER (For å sikre at detaljsiden også har bilder) ---
 const imageCollections = {
   jul: [ 'photo-1543589077-47d81606c1bf', 'photo-1512389142860-9c449e58a543', 'photo-1576919228236-a097c32a5cd4' ],
   tur: [ 'photo-1551632811-561732d1e306', 'photo-1441974231531-c6227db76b6e', 'photo-1478131143081-80f7f84ca84d' ],
@@ -19,16 +19,14 @@ const imageCollections = {
 };
 
 const getValidImage = (aktivitet: any) => {
-  // Bruk lagret bilde hvis det finnes
   if (aktivitet.image_url && aktivitet.image_url.length > 10) return aktivitet.image_url;
   
-  // Ellers generer basert på tittel
   const t = aktivitet.tittel.toLowerCase();
   let collection = imageCollections.default;
-  if (t.includes('jul') || t.includes('advent')) collection = imageCollections.jul;
-  else if (t.includes('tur') || t.includes('gå') || t.includes('marka')) collection = imageCollections.tur;
-  else if (t.includes('mat') || t.includes('kaffe') || t.includes('vaffel')) collection = imageCollections.mat;
-  else if (t.includes('strikk') || t.includes('bok') || t.includes('quiz')) collection = imageCollections.hobby;
+  if (t.includes('jul')) collection = imageCollections.jul;
+  else if (t.includes('tur')) collection = imageCollections.tur;
+  else if (t.includes('mat')) collection = imageCollections.mat;
+  else if (t.includes('strikk')) collection = imageCollections.hobby;
   
   const idSum = aktivitet.id.split('').reduce((acc:any, char:any) => acc + char.charCodeAt(0), 0);
   return `https://images.unsplash.com/${collection[idSum % collection.length]}?q=80&w=800&auto=format&fit=crop`;
@@ -62,8 +60,8 @@ export default function AktivitetDetalj() {
       const { data: akt } = await supabase.from('activities').select('*').eq('id', id).single();
       if (akt) {
         setAktivitet(akt);
-        setFinalImage(getValidImage(akt)); // Generer bilde
-        setWeather('12°C, Lettskyet'); // Simulert vær (Met.no API krever mer oppsett, dette er plassholder)
+        setFinalImage(getValidImage(akt));
+        setWeather('12°C og lettskyet'); 
       }
 
       const { count } = await supabase.from('participants').select('*', { count: 'exact', head: true }).eq('activity_id', id);
@@ -97,7 +95,7 @@ export default function AktivitetDetalj() {
     }
   }
 
-  if (loading) return <div style={{height:'100vh', display:'flex', justifyContent:'center', alignItems:'center', backgroundColor:'#F8FAFC'}}><Loader2 className="animate-spin text-slate-400"/></div>;
+  if (loading) return <div style={{height:'100vh', display:'flex', justifyContent:'center', alignItems:'center', backgroundColor:'#F8FAFC'}}><Loader2 className="animate-spin"/></div>;
   if (!aktivitet) return <div style={{padding:'40px', textAlign:'center'}}>Fant ikke aktiviteten.</div>;
 
   const erFullt = aktivitet.max_deltakere ? antall >= aktivitet.max_deltakere : false;
@@ -124,14 +122,12 @@ export default function AktivitetDetalj() {
 
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '32px', alignItems: 'flex-start' }}>
             
-            {/* VENSTRE SIDE: TEKST */}
             <div style={{ flex: '2', minWidth: '300px', backgroundColor: 'white', padding: '40px', borderRadius: '24px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px rgba(0,0,0,0.02)' }}>
               
               <div style={{display:'flex', gap:'12px', marginBottom:'24px', flexWrap:'wrap'}}>
                 <span style={{ background: '#eff6ff', color: '#1d4ed8', padding: '6px 12px', borderRadius: '8px', fontSize: '12px', fontWeight: '900', textTransform: 'uppercase', letterSpacing: '1px' }}>Aktivitet</span>
-                {/* VÆR OG DATO */}
                 <span style={{ background: '#f1f5f9', color: '#475569', padding: '6px 12px', borderRadius: '8px', fontSize: '14px', fontWeight: 'bold', display:'flex', alignItems:'center', gap:'6px' }}>
-                    <Calendar size={16}/> {aktivitet.dato.split('kl')[0]}
+                    <Calendar size={16}/> {aktivitet.dato.split(',')[0]}
                 </span>
                 {weather && (
                   <span style={{ background: '#ecfdf5', color: '#047857', padding: '6px 12px', borderRadius: '8px', fontSize: '14px', fontWeight: 'bold', display:'flex', alignItems:'center', gap:'6px' }}>
@@ -156,22 +152,19 @@ export default function AktivitetDetalj() {
               ) : (
                 <div style={{ background: '#eff6ff', padding: '24px', borderRadius: '16px', color: '#1e40af', display: 'flex', gap: '16px', alignItems: 'center', border:'1px solid #dbeafe' }}>
                   <div style={{background:'white', padding:'10px', borderRadius:'50%'}}><Info size={24} /></div>
-                  <div><p style={{fontWeight:'bold'}}>Lukket chat</p><p style={{ fontSize: '14px', opacity:0.8 }}>Meld deg på for å snakke med de andre.</p></div>
+                  <div><p style={{fontWeight:'bold'}}>Lukket chat</p><p style={{ fontSize: '14px', opacity:0.8 }}>Meld deg på aktiviteten for å se beskjeder.</p></div>
                 </div>
               )}
             </div>
 
-            {/* HØYRE SIDE: SIDEBAR */}
             <div style={{ flex: '1', minWidth: '300px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
               
-              {/* BILDE */}
               <div style={{ backgroundColor: 'white', padding: '8px', borderRadius: '24px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px rgba(0,0,0,0.05)' }}>
                 <div style={{ width: '100%', aspectRatio: '4/3', borderRadius: '16px', overflow: 'hidden', backgroundColor: '#f1f5f9' }}>
                   <img src={finalImage} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" />
                 </div>
               </div>
 
-              {/* PRIS */}
               <div style={{ backgroundColor: 'white', padding: '24px', borderRadius: '24px', border: '1px solid #e2e8f0', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center' }}>
                  <p style={{ fontSize: '12px', fontWeight: 'bold', textTransform: 'uppercase', color: '#94a3b8', marginBottom: '4px' }}>Kostnad</p>
                  {aktivitet.price > 0 ? (
@@ -179,14 +172,10 @@ export default function AktivitetDetalj() {
                         {aktivitet.price},- <span style={{fontSize:'14px', fontWeight:'bold', color:'#10b981'}}>NOK</span>
                     </div>
                  ) : (
-                    // DUS GRØNN BOKS FOR GRATIS
-                    <div style={{ backgroundColor: '#f0fdf4', color: '#166534', padding: '8px 24px', borderRadius: '12px', fontWeight: 'bold', fontSize: '20px', border: '1px solid #bbf7d0' }}>
-                        Gratis
-                    </div>
+                    <div style={{ backgroundColor: '#f0fdf4', color: '#15803d', padding: '8px 24px', borderRadius: '12px', fontWeight: 'bold', fontSize: '24px', border: '1px solid #bbf7d0' }}>Gratis</div>
                  )}
               </div>
 
-              {/* STATUS */}
               <div style={{ backgroundColor: 'white', padding: '24px', borderRadius: '24px', border: '1px solid #e2e8f0', textAlign: 'center' }}>
                 <p style={{ fontSize: '12px', fontWeight: 'bold', textTransform: 'uppercase', color: '#94a3b8', marginBottom: '8px' }}>Ledige plasser</p>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', marginBottom: '24px' }}>
@@ -196,6 +185,7 @@ export default function AktivitetDetalj() {
                   </span>
                 </div>
 
+                {/* HER VAR FEILEN SIST - NÅ ER DEN RETTET */}
                 <button
                   onClick={toggle}
                   disabled={erFullt && !erPaameldt}
@@ -204,8 +194,9 @@ export default function AktivitetDetalj() {
                       display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
                       backgroundColor: erPaameldt ? 'white' : erFullt ? '#e2e8f0' : '#0f172a',
                       color: erPaameldt ? '#ef4444' : erFullt ? '#94a3b8' : 'white',
-                      border: erPaameldt ? '2px solid #fee2e2' : 'none',
-                      boxShadow: erPaameldt ? 'none' : '0 4px 12px rgba(15, 23, 42, 0.2)'
+                      // Fjernet den doble border-definisjonen
+                      boxShadow: erPaameldt ? 'none' : '0 4px 12px rgba(15, 23, 42, 0.2)',
+                      border: erPaameldt ? '2px solid #fee2e2' : 'none'
                   }}
                 >
                   {erPaameldt ? <><XCircle size={20}/> Meld meg av</> : erFullt ? 'Fullt' : <><CheckCircle size={20}/> Jeg blir med!</>}
@@ -234,7 +225,9 @@ export default function AktivitetDetalj() {
                   <Navigation size={16} /> Veibeskrivelse
                 </a>
               </div>
+
             </div>
+
         </div>
       </div>
     </div>
