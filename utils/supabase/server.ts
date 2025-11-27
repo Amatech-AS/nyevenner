@@ -16,7 +16,7 @@ export function createClient() {
           try {
             cookieStore.set({ name, value, ...options })
           } catch (error) {
-            // Ignorerer feil hvis vi er i en Server Component som ikke kan sette cookies
+            // Ignorerer feil
           }
         },
         remove(name: string, options: CookieOptions) {
