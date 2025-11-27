@@ -4,8 +4,7 @@ import { useEffect, useState } from 'react';
 import { createClient } from '@/utils/supabase/client';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-// RETTET: Lagt til CheckCircle i importen under
-import { LogOut, Calendar, ArrowRight, History, ArrowLeft, User, Heart, UserMinus, X, AlertTriangle, Trophy, Star, MapPin, Coins, Edit2, Save, Phone, Cake, HelpCircle, CheckCircle } from 'lucide-react';
+import { LogOut, Calendar, ArrowRight, History, ArrowLeft, User, Heart, AlertTriangle, Star, MapPin, Coins, Edit2, Save, Phone, Cake, HelpCircle, CheckCircle } from 'lucide-react';
 
 export default function MinSide() {
   const supabase = createClient();
@@ -31,11 +30,8 @@ export default function MinSide() {
   // Data
   const [kommende, setKommende] = useState<any[]>([]);
   const [historikk, setHistorikk] = useState<any[]>([]);
-  
   const [stats, setStats] = useState({ denneMnd: 0, totalt: 0, totalKostnad: 0 });
-  
   const [relasjoner, setRelasjoner] = useState<any[]>([]);
-  
   const [visHistorikk, setVisHistorikk] = useState(false);
   const [unlinkModal, setUnlinkModal] = useState<{ vis: boolean, id: string, navn: string, rolle: string } | null>(null);
   const [unlinkReason, setUnlinkReason] = useState('');
@@ -43,78 +39,98 @@ export default function MinSide() {
 
   useEffect(() => {
     const load = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return router.push('/login');
-      setUser(user);
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return router.push('/login');
+        setUser(user);
 
-      const { data: prof } = await supabase.from('profiles').select('*').eq('id', user.id).single();
-      setProfil(prof);
-      
-      // Fyll inn skjema med ALL info
-      setEditForm({ 
-        full_name: prof.full_name || '', 
-        address: prof.address || '', 
-        postnummer: prof.postnummer || '',
-        telefon: prof.telefon || '',
-        birthdate: prof.birthdate || '' 
-      });
-      
-      let targetUserId = user.id;
-      
-      // 1. Hent relasjoner
-      if (prof.rolle === 'senior') {
-        const { data: links } = await supabase.from('family_links').select('relative_id').eq('senior_id', user.id);
-        if (links && links.length > 0) {
-           const ids = links.map(l => l.relative_id);
-           const { data: rels } = await supabase.from('profiles').select('*').in('id', ids);
-           setRelasjoner(rels || []);
-        }
-      } else if (prof.rolle === 'familie') {
-        const { data: links } = await supabase.from('family_links').select('senior_id').eq('relative_id', user.id);
-        if (links && links.length > 0) {
-           const ids = links.map(l => l.senior_id);
-           const { data: rels } = await supabase.from('profiles').select('*').in('id', ids);
-           setRelasjoner(rels || []);
-           // Hvis jeg er pårørende, vis statistikk for senioren min
-           if (rels && rels.length > 0) targetUserId = rels[0].id; 
-        }
-      }
-
-      // 2. Hent aktiviteter og beregn statistikk
-      const { data: paameldinger } = await supabase.from('participants').select('activity_id, created_at').eq('user_id', targetUserId);
-      
-      if (paameldinger && paameldinger.length > 0) {
-        const ids = paameldinger.map(p => p.activity_id);
-        const { data: akts } = await supabase.from('activities').select('*').in('id', ids).order('created_at', { ascending: false });
+        // Hent profil
+        const { data: prof, error } = await supabase.from('profiles').select('*').eq('id', user.id).single();
         
-        if (akts) {
-          setKommende(akts.slice(0, 3));
-          setHistorikk(akts.slice(3));
-          
-          // Statistikk-logikk (Nullstilles ved årsskifte)
-          const currentYear = new Date().getFullYear();
-          const currentMonth = new Date().getMonth();
+        // Hvis profil mangler, bruk data fra Google-login midlertidig
+        const safeProfile = prof || { 
+            id: user.id, 
+            full_name: user.user_metadata?.full_name || '', 
+            rolle: 'senior', // Default hvis mangler
+            invite_code: 'NY' 
+        };
 
-          const thisYearActivities = akts.filter(a => new Date(a.created_at).getFullYear() === currentYear);
-          const thisMonthActivities = akts.filter(a => {
-            const d = new Date(a.created_at);
-            return d.getFullYear() === currentYear && d.getMonth() === currentMonth;
-          });
-
-          setStats({ 
-            totalt: thisYearActivities.length, 
-            denneMnd: thisMonthActivities.length, 
-            totalKostnad: thisYearActivities.reduce((sum, a) => sum + (a.price || 0), 0) 
-          });
+        setProfil(safeProfile);
+        
+        // Fyll inn skjema
+        setEditForm({ 
+            full_name: safeProfile.full_name || '', 
+            address: safeProfile.address || '', 
+            postnummer: safeProfile.postnummer || '',
+            telefon: safeProfile.telefon || '',
+            birthdate: safeProfile.birthdate || '' 
+        });
+        
+        let targetUserId = user.id;
+        
+        // Logikk for relasjoner (bare hvis vi faktisk har en rolle)
+        if (safeProfile.rolle === 'senior') {
+            const { data: links } = await supabase.from('family_links').select('relative_id').eq('senior_id', user.id);
+            if (links && links.length > 0) {
+            const ids = links.map(l => l.relative_id);
+            const { data: rels } = await supabase.from('profiles').select('*').in('id', ids);
+            setRelasjoner(rels || []);
+            }
+        } else if (safeProfile.rolle === 'familie') {
+            const { data: links } = await supabase.from('family_links').select('senior_id').eq('relative_id', user.id);
+            if (links && links.length > 0) {
+            const ids = links.map(l => l.senior_id);
+            const { data: rels } = await supabase.from('profiles').select('*').in('id', ids);
+            setRelasjoner(rels || []);
+            if (rels && rels.length > 0) targetUserId = rels[0].id; 
+            }
         }
+
+        // Hent aktiviteter
+        const { data: paameldinger } = await supabase.from('participants').select('activity_id, created_at').eq('user_id', targetUserId);
+        
+        if (paameldinger && paameldinger.length > 0) {
+            const ids = paameldinger.map(p => p.activity_id);
+            const { data: akts } = await supabase.from('activities').select('*').in('id', ids).order('created_at', { ascending: false });
+            
+            if (akts) {
+            setKommende(akts.slice(0, 3));
+            setHistorikk(akts.slice(3));
+            
+            const currentYear = new Date().getFullYear();
+            const currentMonth = new Date().getMonth();
+            const thisYearActivities = akts.filter(a => new Date(a.created_at).getFullYear() === currentYear);
+            const thisMonthActivities = akts.filter(a => {
+                const d = new Date(a.created_at);
+                return d.getFullYear() === currentYear && d.getMonth() === currentMonth;
+            });
+
+            setStats({ 
+                totalt: thisYearActivities.length, 
+                denneMnd: thisMonthActivities.length, 
+                totalKostnad: thisYearActivities.reduce((sum, a) => sum + (a.price || 0), 0) 
+            });
+            }
+        }
+      } catch (e) {
+          console.error("Feil ved lasting av min side:", e);
+      } finally {
+          setLoading(false);
       }
-      setLoading(false);
     };
     load();
   }, []);
 
   const saveProfile = async () => {
-    const { error } = await supabase.from('profiles').update(editForm).eq('id', user.id);
+    // Hvis profilen ikke finnes fra før (første google login uten trigger), insert. Ellers update.
+    const updates = {
+        id: user.id,
+        ...editForm,
+        updated_at: new Date(),
+    };
+
+    const { error } = await supabase.from('profiles').upsert(updates);
+
     if (!error) {
         setProfil({ ...profil, ...editForm });
         setIsEditing(false);
@@ -219,7 +235,9 @@ export default function MinSide() {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '24px' }}>
              <div>
                 <h1 style={{ fontSize: '28px', fontWeight: '900', color: '#0f172a', marginBottom: '4px' }}>Min Profil</h1>
-                <p style={{ color: '#64748b' }}>Her er informasjonen vi har om deg.</p>
+                <p style={{ color: '#64748b' }}>
+                    {profil?.address ? 'Her er informasjonen vi har om deg.' : 'Velkommen! Vennligst fyll ut informasjonen din.'}
+                </p>
              </div>
              <button onClick={() => isEditing ? saveProfile() : setIsEditing(true)} style={{ display: 'flex', alignItems: 'center', gap: '8px', background: isEditing ? '#10b981' : '#f1f5f9', color: isEditing ? 'white' : '#475569', padding: '10px 20px', borderRadius: '99px', border: 'none', fontWeight: 'bold', cursor: 'pointer' }}>
                 {isEditing ? <><Save size={16}/> Lagre</> : <><Edit2 size={16}/> Endre</>}
@@ -247,7 +265,7 @@ export default function MinSide() {
                     </div>
                 ) : (
                     <p style={{ fontSize: '18px', fontWeight: '500', color: '#334155', display:'flex', alignItems:'center', gap:'8px' }}>
-                        <MapPin size={18} className="text-slate-400"/> {profil?.address || ''} {profil?.postnummer ? `, ${profil.postnummer}` : '(Ingen adresse)'}
+                        <MapPin size={18} className="text-slate-400"/> {profil?.address || ''} {profil?.postnummer ? `, ${profil.postnummer}` : '(Mangler adresse)'}
                     </p>
                 )}
              </div>
@@ -281,7 +299,7 @@ export default function MinSide() {
              <div style={{ marginTop: '32px', paddingTop: '24px', borderTop: '1px solid #f1f5f9' }}>
                 <p style={{ fontSize: '12px', fontWeight: 'bold', textTransform: 'uppercase', color: '#d97706', marginBottom: '8px' }}>Din kode for pårørende</p>
                 <div style={{ display: 'inline-block', background: '#fffbeb', color: '#b45309', fontSize: '24px', fontWeight: '900', letterSpacing: '2px', padding: '12px 24px', borderRadius: '12px', border: '2px dashed #fcd34d' }}>
-                    {profil?.invite_code}
+                    {profil?.invite_code || '---'}
                 </div>
              </div>
           )}
